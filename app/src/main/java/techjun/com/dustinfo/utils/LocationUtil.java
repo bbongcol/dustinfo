@@ -52,6 +52,7 @@ public class LocationUtil {
     public void settingInitGPS() {
         // Acquire a reference to the system Location Manager
         locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        /*
         locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 double latitude = location.getLatitude();
@@ -68,6 +69,7 @@ public class LocationUtil {
             public void onProviderDisabled(String provider) {
             }
         };
+        */
     }
 
     @SuppressLint("MissingPermission")
@@ -75,11 +77,13 @@ public class LocationUtil {
         Location currentLocation = null;
 
         if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            //locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 
             // 수동으로 위치 구하기
-            String locationProvider = LocationManager.GPS_PROVIDER;
+            //TODO 선택메뉴 만들기
+            //String locationProvider = LocationManager.GPS_PROVIDER;
+            String locationProvider = LocationManager.NETWORK_PROVIDER;
             currentLocation = locationManager.getLastKnownLocation(locationProvider);
         }
         return currentLocation;
