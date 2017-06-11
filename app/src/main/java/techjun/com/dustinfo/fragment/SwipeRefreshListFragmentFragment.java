@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import techjun.com.dustinfo.R;
+import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.service.DustService;
 
 /**
@@ -108,8 +109,8 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         dustService = DustService.getInstance(getContext());
         dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
             @Override
-            public void OnCurrentDust(int[] pm10, int[] pm25, String[] time) {
-                mPM10 = pm10; mPM25 = pm25; mTime = time;
+            public void OnCurrentDust(Dust curDust) {
+                mPM10 = curDust.getmPM10(); mPM25 = curDust.getmPM25(); mTime = curDust.getmCurDataTime();
                 initiateRefresh();
             }
         });

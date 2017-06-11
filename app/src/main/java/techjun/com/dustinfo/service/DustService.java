@@ -32,7 +32,7 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class DustService {
     public interface OnCurrentDustCB {
-        void OnCurrentDust(int[] pm10, int[] pm25, String[] time);
+        void OnCurrentDust(Dust curDust);
     }
 
     private static DustService sInstance = null;
@@ -86,18 +86,23 @@ public class DustService {
         protected void onPostExecute(Integer result) {
             //Log.d("onPostExecute", myDust +" " + myDust.getmPM10()[0]);
             if (myCallback != null) {
-                myCallback.OnCurrentDust(myDust.getmPM10(), myDust.getmPM25(), myDust.getmCurDataTime());
+                myCallback.OnCurrentDust(myDust);
             }
         }
     }
 
     boolean checkNeedToUpdate() {
         boolean needToUpdate = false;
+        //Log.d(TAG,"myDust.getmCurLocation()[1]:"+myDust.getmCurLocation()[1]+" LocationUtil.getInstance(mContext).getAddressList()[1]:"+LocationUtil.getInstance(mContext).getAddressList()[1]);
+
         if(myDust.getmPM10()[0] == 0 && myDust.getmPM25()[0] == 0) {
+            Log.d(TAG,"Update Case - data is 0");
             needToUpdate = true;
         } else if(myDust.getmCurLocation()[1]!=null && myDust.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance(mContext).getAddressList()[1])) {
+            if (myDust.getmCurLocation()[0] == null) {
+                myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
+            }
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-
             try {
                 Date dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
                 Date curDateTime = df.parse(df.format(new Date()));
@@ -106,6 +111,7 @@ public class DustService {
 
                 if (diff > 90 * 60 * 1000) {
                     //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
+                    Log.d(TAG,"Update Case - new data available");
                     needToUpdate = true;
                 } else {
                     needToUpdate = false;
@@ -115,6 +121,7 @@ public class DustService {
             }
         } else {
             //다른 지역인 경우
+            Log.d(TAG,"Update Case - location change");
             needToUpdate = true;
         }
         return needToUpdate;
@@ -211,7 +218,7 @@ public class DustService {
 
             //버퍼의 웹문서 소스를 줄단위로 읽어(line), Page에 저장함
             while((line = bufreader.readLine())!=null){
-                Log.d("line:",line);
+                //Log.d("line:",line);
                 page.append(line);
             }
 
@@ -228,7 +235,7 @@ public class DustService {
         }
         return page.toString();
     }
-
+//cytyName
     public void restoreDustInfo () {
         JSONArray json = getPreferences(dust_data_preference);
 
@@ -238,7 +245,10 @@ public class DustService {
                     myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
                     myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
                     myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                    Log.d(TAG,"getPreferences OK");
                 }
+
+                myDust.getmCurLocation()[1] = json.getJSONObject(0).getString("cityName");
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -268,9 +278,7 @@ public class DustService {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
         }
-
         return jsonArray;
     }
 
