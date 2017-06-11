@@ -70,6 +70,10 @@ public class DustService {
         new JsonLoadingTask().execute();
     }
 
+    public Dust getCurDustInfo () {
+        return myDust;
+    }
+
     private class JsonLoadingTask extends AsyncTask<String, Void, Integer> {
         @Override
         protected Integer doInBackground(String... strs) {
@@ -99,9 +103,9 @@ public class DustService {
             Log.d(TAG,"Update Case - data is 0");
             needToUpdate = true;
         } else if(myDust.getmCurLocation()[1]!=null && myDust.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance(mContext).getAddressList()[1])) {
-            if (myDust.getmCurLocation()[0] == null) {
-                myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
-            }
+            //if (myDust.getmCurLocation()[0] == null) {
+            //    myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
+            //}
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             try {
                 Date dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
@@ -156,6 +160,11 @@ public class DustService {
                 //Log.d(TAG,myDust.getmCurDataTime()[i] + " " + myDust.getmPM10()[i] + " " + myDust.getmPM25()[i]);
             }
 
+            JSONObject sObject = new JSONObject();
+            sObject.put("address0", myDust.getmCurLocation()[0]);
+            sObject.put("address1", myDust.getmCurLocation()[1]);
+            sObject.put("address2", myDust.getmCurLocation()[2]);
+            json.put(sObject);
             savePreferences(dust_data_preference, json.toString());
 
         } catch (Exception e) {
@@ -176,7 +185,7 @@ public class DustService {
                 sb.append("충북");
                 break;
             case "충청남도":
-                sb.append("충");
+                sb.append("충남");
                 break;
             case "전라북도":
                 sb.append("전북");
@@ -235,20 +244,23 @@ public class DustService {
         }
         return page.toString();
     }
-//cytyName
+
+    //cytyName
     public void restoreDustInfo () {
-        JSONArray json = getPreferences(dust_data_preference);
+        JSONArray json = getPreferencesJson(dust_data_preference);
 
         try {
             if(json != null ) {
-                for (int i = 0; i < json.length() - 1; i++) {
+                for (int i = 0; i < json.length() - 2; i++) {
                     myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
                     myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
                     myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
                     Log.d(TAG,"getPreferences OK");
                 }
 
-                myDust.getmCurLocation()[1] = json.getJSONObject(0).getString("cityName");
+                myDust.getmCurLocation()[0] = json.getJSONObject(json.length()-1).getString("address0");
+                myDust.getmCurLocation()[1] = json.getJSONObject(json.length()-1).getString("address1");
+                myDust.getmCurLocation()[2] = json.getJSONObject(json.length()-1).getString("address2");
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -266,7 +278,7 @@ public class DustService {
     }
 
     // 값 불러오기
-    private JSONArray getPreferences(String key){
+    private JSONArray getPreferencesJson(String key){
         Log.d(TAG,"getPreferences");
         SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.dustinfo_preferences), MODE_PRIVATE);
         String jsonStr = pref.getString(key, null);

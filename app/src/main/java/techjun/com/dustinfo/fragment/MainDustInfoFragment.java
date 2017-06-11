@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,6 +37,9 @@ public class MainDustInfoFragment extends Fragment {
     private TextView address, textPM10, textPM25;
 
     private OnFragmentInteractionListener mListener;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private DustService dustService;
+    private Dust myDust;
 
     public MainDustInfoFragment() {
         // Required empty public constructor
@@ -74,6 +78,19 @@ public class MainDustInfoFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_main_dust_info, container, false);
 
+        mSwipeRefreshLayout = (SwipeRefreshLayout) v.findViewById(R.id.swipe_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                dustService.requestPMInfo();
+            }
+        });
+
+        mSwipeRefreshLayout.setColorSchemeResources(
+                R.color.color_scheme_1_1, R.color.color_scheme_1_2,
+                R.color.color_scheme_1_3, R.color.color_scheme_1_4
+        );
+
         ImageView image = (ImageView) v.findViewById(R.id.image);
         image.setImageResource(R.mipmap.bg_sky);
 
@@ -81,14 +98,25 @@ public class MainDustInfoFragment extends Fragment {
         textPM10 = (TextView)v.findViewById(R.id.textViewPM10);
         textPM25 = (TextView)v.findViewById(R.id.textViewPM25);
 
-        DustService dustService = DustService.getInstance(getContext());
+        dustService = DustService.getInstance(getContext());
+        myDust = dustService.getCurDustInfo();
+        if(myDust.getmCurDataTime()[0] != null) {
+            address.setText(displayAddress(myDust.getmCurLocation()));
+            textPM10.setText("PM10 : "+myDust.getmPM10()[0]);
+            textPM25.setText("PM2.5 : "+myDust.getmPM25()[0]);
+        } else {
+            mSwipeRefreshLayout.setRefreshing(true);
+        }
 
         dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
             @Override
             public void OnCurrentDust(Dust curDust) {
-                address.setText(displayAddress(curDust.getmCurLocation()));
-                textPM10.setText("PM10 : "+curDust.getmPM10()[0]);
-                textPM25.setText("PM2.5 : "+curDust.getmPM25()[0]);
+                //if(!myDust.getmCurDataTime()[0].equalsIgnoreCase(curDust.getmCurDataTime()[0])) {
+                    address.setText(displayAddress(curDust.getmCurLocation()));
+                    textPM10.setText("PM10 : " + curDust.getmPM10()[0]);
+                    textPM25.setText("PM2.5 : " + curDust.getmPM25()[0]);
+                //}
+                mSwipeRefreshLayout.setRefreshing(false);
             }
         });
 
