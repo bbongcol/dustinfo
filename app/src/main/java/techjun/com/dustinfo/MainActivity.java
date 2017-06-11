@@ -2,6 +2,7 @@ package techjun.com.dustinfo;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -18,13 +19,20 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import techjun.com.dustinfo.fragment.MainDustInfoFragment;
 import techjun.com.dustinfo.fragment.SwipeRefreshListFragmentFragment;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, MainDustInfoFragment.OnFragmentInteractionListener{
 
     public final static int REQUEST_CODE_LOCATION = 1000;
+
+    public final static int FRAGMENT_DUST_INFO_MAIN = 2001;
+    public final static int FRAGMENT_DUST_INFO_LIST = 2002;
+    public final static int FRAGMENT_DUST_INFO_GRAPH = 2004;
+    public final static int FRAGMENT_SETTING = 2004;
+
     final static String TAG = "MainActivity";
 
     @Override
@@ -34,25 +42,19 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        if (savedInstanceState == null) {
-            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            SwipeRefreshListFragmentFragment fragment = new SwipeRefreshListFragmentFragment();
-            transaction.replace(R.id.dust_content_fragment, fragment);
-            transaction.commit();
-        }
-
         //권한 요청
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // 사용자 권한 요청
             Log.d(TAG, "requestPermissions");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
+        } else {
+            LocationUtil.initInstance(this);
+            setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
+
+            if (savedInstanceState == null) {
+                updateFragment(FRAGMENT_DUST_INFO_MAIN);
+            }
         }
-
-        //위치 서비스 초기화, 인스턴스 생성
-        LocationUtil.initInstance(this);
-
-        //Title 설정
-        setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -84,11 +86,19 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         Log.d(TAG, "onRequestPermissionsResult");
-        setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
 
+        if (requestCode != REQUEST_CODE_LOCATION) {
+            return;
+        }
 
+        if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            LocationUtil.initInstance(this);
+            setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
+            updateFragment(FRAGMENT_DUST_INFO_MAIN);
+            return;
+        }
     }
 
     @Override
@@ -127,24 +137,64 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
+
         int id = item.getItemId();
+        int fragmentId = 0;
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
+        if (id == R.id.nav_main) {
+            fragmentId = FRAGMENT_DUST_INFO_MAIN;
+        } else if (id == R.id.nav_list) {
+            fragmentId = FRAGMENT_DUST_INFO_LIST;
+        } else if (id == R.id.nav_graph) {
+            fragmentId = FRAGMENT_DUST_INFO_GRAPH;
+        } else if (id == R.id.nav_setting) {
+            fragmentId = FRAGMENT_SETTING;
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
 
         }
 
+        updateFragment(fragmentId);
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void updateFragment (int feagment) {
+        updateFragment(feagment, false);
+    }
+
+    private void updateFragment (int feagment, boolean addToBackStack) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+
+        if (feagment == FRAGMENT_DUST_INFO_MAIN) {
+            MainDustInfoFragment mMainDustInfoFragment = MainDustInfoFragment.newInstance("", "");
+            transaction.replace(R.id.dust_content_fragment, mMainDustInfoFragment);
+        } else if (feagment == FRAGMENT_DUST_INFO_LIST) {
+            SwipeRefreshListFragmentFragment fragment = new SwipeRefreshListFragmentFragment();
+            transaction.replace(R.id.dust_content_fragment, fragment);
+        } else if (feagment == FRAGMENT_DUST_INFO_GRAPH) {
+
+        } else if (feagment == FRAGMENT_SETTING) {
+
+        } else if (feagment == R.id.nav_share) {
+
+        } else if (feagment == R.id.nav_send) {
+
+        }
+
+        if(addToBackStack) {
+            transaction.addToBackStack(null);
+        }
+
+        transaction.commit();
+    }
+
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+
     }
 }

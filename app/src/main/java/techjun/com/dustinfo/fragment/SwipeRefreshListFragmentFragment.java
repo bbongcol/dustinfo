@@ -195,7 +195,7 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         /**
          * Execute the background task, which uses {@link AsyncTask} to load the data.
          */
-        new DummyBackgroundTask().execute();
+        new BackgroundTask().execute();
     }
     // END_INCLUDE (initiate_refresh)
 
@@ -221,7 +221,7 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
     /**
      * Dummy {@link AsyncTask} which simulates a long running task to fetch new cheeses.
      */
-    private class DummyBackgroundTask extends AsyncTask<Void, Void, List<String>> {
+    private class BackgroundTask extends AsyncTask<Void, Void, List<String>> {
 
         static final int TASK_DURATION = 3 * 1000; // 3 seconds
 
