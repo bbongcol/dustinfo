@@ -21,6 +21,7 @@ import android.view.MenuItem;
 
 import techjun.com.dustinfo.fragment.MainDustInfoFragment;
 import techjun.com.dustinfo.fragment.SwipeRefreshListFragmentFragment;
+import techjun.com.dustinfo.service.DustService;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 public class MainActivity extends AppCompatActivity
@@ -48,8 +49,8 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "requestPermissions");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
         } else {
-            LocationUtil.initInstance(this);
-            setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
+            setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
+            DustService.getInstance(this).updateDustInfo();
 
             if (savedInstanceState == null) {
                 updateFragment(FRAGMENT_DUST_INFO_MAIN);
@@ -94,11 +95,15 @@ public class MainActivity extends AppCompatActivity
         }
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            LocationUtil.initInstance(this);
-            setTitle(displayAddress(LocationUtil.getInstance().getAddressList()));
-            updateFragment(FRAGMENT_DUST_INFO_MAIN);
-            return;
+
+        } else {
+
         }
+        //권한 유무와 상관없이 업데이트
+        setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
+        DustService.getInstance(this).updateDustInfo();
+        updateFragment(FRAGMENT_DUST_INFO_MAIN);
+        return;
     }
 
     @Override

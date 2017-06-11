@@ -14,7 +14,8 @@
     <string name="menu_color_scheme_2">Scheme #2</string>
     <string name="menu_color_scheme_3">Scheme #3</string>
 
-    <string name="setting_preferences">simpledustinfo.setting</string>
+    <string name="dustinfo_preferences">dustinfo.data</string>
+    <string name="setting_preferences">dustinfo.setting</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

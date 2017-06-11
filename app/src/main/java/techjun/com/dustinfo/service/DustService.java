@@ -1,10 +1,12 @@
 package techjun.com.dustinfo.service;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -13,9 +15,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+import techjun.com.dustinfo.R;
 import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.utils.LocationUtil;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by leebongjun on 2017. 6. 4..
@@ -26,13 +35,26 @@ public class DustService {
         void OnCurrentDust(int[] pm10, int[] pm25, String[] time);
     }
 
+    private static DustService sInstance = null;
     Dust myDust;
     private OnCurrentDustCB myCallback;
     private Context mContext;
+    final static String TAG = "DustService";
+
+    final static String dust_data_preference = "dust_json_array";
 
     public DustService(Context context) {
         mContext = context;
         myDust = new Dust();
+        restoreDustInfo();
+    }
+
+    public static DustService getInstance(Context context) {
+        if (sInstance == null) {
+            //Always pass in the Application Context
+            sInstance = new DustService(context.getApplicationContext());
+        }
+        return sInstance;
     }
 
     //Call back method 호출을 위한 함수
@@ -40,8 +62,8 @@ public class DustService {
         myCallback = callback;
     }
 
-    public void addDustModel (Dust newDust) {
-        myDust = newDust;
+    public void updateDustInfo() {
+        requestPMInfo();
     }
 
     public void requestPMInfo () {
@@ -51,34 +73,33 @@ public class DustService {
     private class JsonLoadingTask extends AsyncTask<String, Void, Integer> {
         @Override
         protected Integer doInBackground(String... strs) {
-            return getJsonText();
-            /*
             if(checkNeedToUpdate()) {
-                Log.d("DustService","Update Now");
+                Log.d(TAG,"Update Now");
                 return getJsonText();
             } else {
-                Log.d("DustService","No Update");
-                return new int[]{myDust.getmPM10(), myDust.getmPM25()};
+                Log.d(TAG,"No Update");
+                return 0;
             }
-            */
-        } // doInBackground : 백그라운드 작업을 진행한다.
+        }
+
         @Override
         protected void onPostExecute(Integer result) {
             //Log.d("onPostExecute", myDust +" " + myDust.getmPM10()[0]);
-            myCallback.OnCurrentDust(myDust.getmPM10(), myDust.getmPM25(), myDust.getmCurDataTime());
-        } // onPostExecute : 백그라운드 작업이 끝난 후 UI 작업을 진행한다.
-    } // JsonLoadingTask
+            if (myCallback != null) {
+                myCallback.OnCurrentDust(myDust.getmPM10(), myDust.getmPM25(), myDust.getmCurDataTime());
+            }
+        }
+    }
 
-    /*
     boolean checkNeedToUpdate() {
         boolean needToUpdate = false;
-        if(myDust.getmPM10() == 0 && myDust.getmPM25() == 0) {
+        if(myDust.getmPM10()[0] == 0 && myDust.getmPM25()[0] == 0) {
             needToUpdate = true;
-        } else if(myDust.getmCurLocation()[1]!=null && myDust.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance().getAddressList()[1])) {
+        } else if(myDust.getmCurLocation()[1]!=null && myDust.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance(mContext).getAddressList()[1])) {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
             try {
-                Date dustDataTime = df.parse(myDust.getmCurDataTime());
+                Date dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
                 Date curDateTime = df.parse(df.format(new Date()));
 
                 long diff = curDateTime.getTime() - dustDataTime.getTime();
@@ -98,7 +119,6 @@ public class DustService {
         }
         return needToUpdate;
     }
-    */
 
     /**
      * 원격으로부터 JSON형태의 문서를 받아서
@@ -107,26 +127,32 @@ public class DustService {
     public int getJsonText() {
         try {
             //서버 통신 확인
-            String jsonTmp = getStringFromUrl("https://lit-inlet-76867.herokuapp.com");
+            //String jsonTmp = getStringFromUrl("https://lit-inlet-76867.herokuapp.com");
 
             //주어진 URL 문서의 내용을 문자열로 얻는다.
             String jsonPage = getStringFromUrl(getDustUrl());
 
-            JSONObject jsonT = new JSONObject(jsonTmp);
-            if(jsonT.getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
+            //JSON객체를 JSONArray로 변경
+            JSONArray json = new JSONArray(jsonPage);
+
+            if(json.getJSONObject(0).has("msg") &&
+                    json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
                 jsonPage = getStringFromUrl(getDustUrl());
+                json = new JSONArray(jsonPage);
             }
 
-            //읽어들인 JSON포맷의 데이터를 JSON객체로 변환
-            JSONArray json = new JSONArray(jsonPage);
-            //Log.d("json","json");
-
-            for(int i=0; i < json.length(); i++) {
+            //Log.d(TAG,""+json.length());
+            for(int i=0; i < json.length() - 1; i++) {
                 myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
                 myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
                 myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                //Log.d(TAG,myDust.getmCurDataTime()[i] + " " + myDust.getmPM10()[i] + " " + myDust.getmPM25()[i]);
             }
+
+            savePreferences(dust_data_preference, json.toString());
+
         } catch (Exception e) {
+            e.printStackTrace();
             // TODO: handle exception
         }
         return 0;
@@ -136,7 +162,7 @@ public class DustService {
     public String getDustUrl() {
         StringBuffer sb = new StringBuffer();
         sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        myDust.setmCurLocation(LocationUtil.getInstance().getAddressList());
+        myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
 
         switch(myDust.getmCurLocation()[0]) {
             case "충청북도":
@@ -185,7 +211,7 @@ public class DustService {
 
             //버퍼의 웹문서 소스를 줄단위로 읽어(line), Page에 저장함
             while((line = bufreader.readLine())!=null){
-                //Log.d("line:",line);
+                Log.d("line:",line);
                 page.append(line);
             }
 
@@ -203,37 +229,56 @@ public class DustService {
         return page.toString();
     }
 
-    /*
-    // 값 불러오기
-    private int getPreferences_Int(String key){
-        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.setting_preferences), MODE_PRIVATE);
-        return pref.getInt(key, 0);
+    public void restoreDustInfo () {
+        JSONArray json = getPreferences(dust_data_preference);
+
+        try {
+            if(json != null ) {
+                for (int i = 0; i < json.length() - 1; i++) {
+                    myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
+                    myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
+                    myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
     }
-    // 값 불러오기
-    private String getPreferences_String(String key){
-        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.setting_preferences), MODE_PRIVATE);
-        return pref.getString(key, "");
-    }
-    // 값 저장하기
-    private void savePreferences(String key, int value){
-        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.setting_preferences), MODE_PRIVATE);
-        SharedPreferences.Editor editor = pref.edit();
-        editor.putInt(key, value);
-        editor.commit();
-    }
+
     // 값 저장하기
     private void savePreferences(String key, String value){
-        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.setting_preferences), MODE_PRIVATE);
+        Log.d(TAG,"savePreferences");
+        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.dustinfo_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = pref.edit();
         editor.putString(key, value);
-        editor.commit();
+        editor.apply();
     }
+
+    // 값 불러오기
+    private JSONArray getPreferences(String key){
+        Log.d(TAG,"getPreferences");
+        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.dustinfo_preferences), MODE_PRIVATE);
+        String jsonStr = pref.getString(key, null);
+        JSONArray jsonArray = null;
+
+        if(jsonStr != null) {
+            try {
+                jsonArray = new JSONArray(jsonStr);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        return jsonArray;
+    }
+
     // 값(ALL Data) 삭제하기
     private void removeAllPreferences(){
-        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.setting_preferences), MODE_PRIVATE);
+        SharedPreferences pref = mContext.getSharedPreferences(mContext.getString(R.string.dustinfo_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = pref.edit();
         editor.clear();
         editor.commit();
     }
-    */
 }

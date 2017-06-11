@@ -29,7 +29,6 @@ import android.widget.ListAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-import techjun.com.dustinfo.Cheeses;
 import techjun.com.dustinfo.R;
 import techjun.com.dustinfo.service.DustService;
 
@@ -75,14 +74,16 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
          * Create an ArrayAdapter to contain the data for the ListView. Each item in the ListView
          * uses the system-defined simple_list_item_1 layout that contains one TextView.
          */
+
         ListAdapter adapter = new ArrayAdapter<String>(
                 getActivity(),
                 android.R.layout.simple_list_item_1,
                 android.R.id.text1,
-                Cheeses.randomList(LIST_ITEM_COUNT));
+                new ArrayList<String>());
 
         // Set the adapter between the ListView and its backing data.
         setListAdapter(adapter);
+        setRefreshing(true);
 
         // BEGIN_INCLUDE (setup_refreshlistener)
         /**
@@ -104,12 +105,10 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         setColorScheme(R.color.color_scheme_1_1, R.color.color_scheme_1_2,
                 R.color.color_scheme_1_3, R.color.color_scheme_1_4);
 
-        dustService = new DustService(getContext());
+        dustService = DustService.getInstance(getContext());
         dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
             @Override
             public void OnCurrentDust(int[] pm10, int[] pm25, String[] time) {
-                //textPM10.setText("PM10 : "+pm10);
-                //textPM25.setText("PM2.5 : "+pm25);
                 mPM10 = pm10; mPM25 = pm25; mTime = time;
                 initiateRefresh();
             }
@@ -209,8 +208,8 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         // Remove all items from the ListAdapter, and then replace them with the new items
         ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
         adapter.clear();
-        for (String cheese : result) {
-            adapter.add(cheese);
+        for (String dust : result) {
+            adapter.add(dust);
         }
 
         // Stop the refreshing indicator
@@ -223,17 +222,8 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
      */
     private class BackgroundTask extends AsyncTask<Void, Void, List<String>> {
 
-        static final int TASK_DURATION = 3 * 1000; // 3 seconds
-
         @Override
         protected List<String> doInBackground(Void... params) {
-            // Sleep for a small amount of time to simulate a background-task
-            try {
-                Thread.sleep(TASK_DURATION);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
             List<String> dustInfoStr = new ArrayList<String>();
             for(int i=0; i < mPM10.length; i++) {
                 dustInfoStr.add(mTime[i] + "    PM10 : " +mPM10[i] + "    PM2.5 : "+ mPM25[i]);

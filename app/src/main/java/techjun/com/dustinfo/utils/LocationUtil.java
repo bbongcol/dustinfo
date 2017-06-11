@@ -37,11 +37,7 @@ public class LocationUtil {
         settingInitGPS();
     }
 
-    public static LocationUtil getInstance() {
-        return sInstance;
-    }
-
-    public static LocationUtil initInstance(Context context) {
+    public static LocationUtil getInstance(Context context) {
         if (sInstance == null) {
             //Always pass in the Application Context
             sInstance = new LocationUtil(context.getApplicationContext());
