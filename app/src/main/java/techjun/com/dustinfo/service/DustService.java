@@ -74,6 +74,17 @@ public class DustService {
         return myDust;
     }
 
+    public Date getLastDustInfoTime () {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        Date dustDataTime = null;
+        try {
+            dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return dustDataTime;
+    }
+
     private class JsonLoadingTask extends AsyncTask<String, Void, Integer> {
         @Override
         protected Integer doInBackground(String... strs) {

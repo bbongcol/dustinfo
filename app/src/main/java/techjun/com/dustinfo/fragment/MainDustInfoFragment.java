@@ -34,7 +34,7 @@ public class MainDustInfoFragment extends Fragment {
     private String mParam1;
     private String mParam2;
 
-    private TextView address, textPM10, textPM25;
+    private TextView address, textPM10, textPM25, textPM10Data, textPM25Data, textLastTime;
 
     private OnFragmentInteractionListener mListener;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -98,12 +98,18 @@ public class MainDustInfoFragment extends Fragment {
         textPM10 = (TextView)v.findViewById(R.id.textViewPM10);
         textPM25 = (TextView)v.findViewById(R.id.textViewPM25);
 
+        textPM10Data = (TextView)v.findViewById(R.id.testViewPM10Data);
+        textPM25Data = (TextView)v.findViewById(R.id.textViewPM25Data);
+        textLastTime = (TextView)v.findViewById(R.id.textLastTime);
+
         dustService = DustService.getInstance(getContext());
         myDust = dustService.getCurDustInfo();
         if(myDust.getmCurDataTime()[0] != null) {
             //address.setText(displayAddress(myDust.getmCurLocation()));
-            textPM10.setText("미세먼지 : "+myDust.getmPM10()[0]);
-            textPM25.setText("초미세먼지 : "+myDust.getmPM25()[0]);
+            textPM10Data.setText(""+myDust.getmPM10()[0]);
+            textPM25Data.setText(""+myDust.getmPM25()[0]);
+            textLastTime.setText(""+myDust.getmCurDataTime()[0]);
+
         } else {
             mSwipeRefreshLayout.setRefreshing(true);
         }
@@ -111,11 +117,10 @@ public class MainDustInfoFragment extends Fragment {
         dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
             @Override
             public void OnCurrentDust(Dust curDust) {
-                //if(!myDust.getmCurDataTime()[0].equalsIgnoreCase(curDust.getmCurDataTime()[0])) {
-                    //address.setText(displayAddress(curDust.getmCurLocation()));
-                    textPM10.setText("미세먼지 : " + curDust.getmPM10()[0]);
-                    textPM25.setText("초미세먼지 : " + curDust.getmPM25()[0]);
-                //}
+                textPM10Data.setText(""+myDust.getmPM10()[0]);
+                textPM25Data.setText(""+myDust.getmPM25()[0]);
+                textLastTime.setText(""+myDust.getmCurDataTime()[0]);
+
                 mSwipeRefreshLayout.setRefreshing(false);
             }
         });
