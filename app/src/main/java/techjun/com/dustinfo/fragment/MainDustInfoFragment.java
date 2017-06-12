@@ -101,9 +101,9 @@ public class MainDustInfoFragment extends Fragment {
         dustService = DustService.getInstance(getContext());
         myDust = dustService.getCurDustInfo();
         if(myDust.getmCurDataTime()[0] != null) {
-            address.setText(displayAddress(myDust.getmCurLocation()));
-            textPM10.setText("PM10 : "+myDust.getmPM10()[0]);
-            textPM25.setText("PM2.5 : "+myDust.getmPM25()[0]);
+            //address.setText(displayAddress(myDust.getmCurLocation()));
+            textPM10.setText("미세먼지 : "+myDust.getmPM10()[0]);
+            textPM25.setText("초미세먼지 : "+myDust.getmPM25()[0]);
         } else {
             mSwipeRefreshLayout.setRefreshing(true);
         }
@@ -112,9 +112,9 @@ public class MainDustInfoFragment extends Fragment {
             @Override
             public void OnCurrentDust(Dust curDust) {
                 //if(!myDust.getmCurDataTime()[0].equalsIgnoreCase(curDust.getmCurDataTime()[0])) {
-                    address.setText(displayAddress(curDust.getmCurLocation()));
-                    textPM10.setText("PM10 : " + curDust.getmPM10()[0]);
-                    textPM25.setText("PM2.5 : " + curDust.getmPM25()[0]);
+                    //address.setText(displayAddress(curDust.getmCurLocation()));
+                    textPM10.setText("미세먼지 : " + curDust.getmPM10()[0]);
+                    textPM25.setText("초미세먼지 : " + curDust.getmPM25()[0]);
                 //}
                 mSwipeRefreshLayout.setRefreshing(false);
             }
