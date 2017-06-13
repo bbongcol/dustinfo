@@ -46,14 +46,13 @@
                     android:id="@+id/testViewPM10Data"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
                     android:gravity="center_horizontal"
-                    android:text="200"
                     android:textColor="#FFFFFFFF"
                     android:textSize="80sp"
                     app:layout_constraintBottom_toTopOf="@+id/textViewPM10"
                     app:layout_constraintEnd_toStartOf="@+id/textViewPM25Data"
-                    app:layout_constraintStart_toStartOf="parent"
-                    android:layout_marginBottom="8dp" />
+                    app:layout_constraintStart_toStartOf="parent" />
 
                 <TextView
                     android:id="@+id/textViewPM10"
@@ -73,14 +72,13 @@
                     android:id="@+id/textViewPM25Data"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
                     android:gravity="center_horizontal"
-                    android:text="100"
                     android:textColor="#FFFFFFFF"
                     android:textSize="80sp"
                     app:layout_constraintBottom_toTopOf="@+id/textViewPM25"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/testViewPM10Data"
-                    android:layout_marginBottom="8dp" />
+                    app:layout_constraintStart_toEndOf="@+id/testViewPM10Data" />
 
                 <TextView
                     android:id="@+id/textViewPM25"
@@ -100,14 +98,13 @@
                     android:id="@+id/textLastTime"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="06-11 12:00 "
-                    android:textColor="#FFFFFFFF"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginStart="8dp"
+                    android:textColor="#94FFFFFF"
                     android:textSize="20sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    android:layout_marginBottom="8dp"
-                    android:layout_marginStart="8dp" />
+                    app:layout_constraintStart_toStartOf="parent" />
             </android.support.constraint.ConstraintLayout>
 
         </RelativeLayout>
