@@ -1,9 +1,15 @@
 package techjun.com.dustinfo;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -21,6 +27,7 @@ import android.view.MenuItem;
 
 import techjun.com.dustinfo.fragment.MainDustInfoFragment;
 import techjun.com.dustinfo.fragment.SwipeRefreshListFragmentFragment;
+import techjun.com.dustinfo.service.DustDBService;
 import techjun.com.dustinfo.service.DustService;
 import techjun.com.dustinfo.utils.LocationUtil;
 
@@ -36,9 +43,13 @@ public class MainActivity extends AppCompatActivity
 
     final static String TAG = "MainActivity";
 
+    DustDBService mDustDBService;
+    boolean mBound = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -77,6 +88,69 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        //서비스 실행 및 바인딩
+        Intent intent = new Intent(this, DustDBService.class);
+        startService(intent);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+        //mDustDBService.getJsonText();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
+        doUnbindService();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+    }
+
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+
+            DustDBService.LocalBinder binder = (DustDBService.LocalBinder) service;
+            mDustDBService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+    void doUnbindService() {
+        if (mBound) {
+            // Detach our existing connection.
+            unbindService(mConnection);
+            mBound = false;
+        }
     }
 
     public String displayAddress (String[] address) {
