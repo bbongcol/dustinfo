@@ -1,9 +1,13 @@
 package techjun.com.dustinfo.db;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import java.util.ArrayList;
+import techjun.com.dustinfo.model.Dust;
 
 /**
  * Created by leebongjun on 2017. 6. 13..
@@ -14,7 +18,9 @@ public class DBHelperDust extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
     Context context;
 
-    // DBHelper 생성자로 관리할 DB 이름과 버전 정보를 받음
+    // TODO db를 전역 변수로 사용할지 지역변수로 사용할지 결정
+
+   // DBHelper 생성자로 관리할 DB 이름과 버전 정보를 받음
     public DBHelperDust(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         // TODO Auto-generated constructor stub
@@ -23,7 +29,22 @@ public class DBHelperDust extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE dust_data (_id Integer PRIMARY KEY AUTOINCREMENT, datatime TEXT, city TEXT, sido TEXT, dong TEXT, covalue REAL, no2value REAL, o3value REAL, pm10value REAL, pm25value REAL, so2value REAL);");
+        db.execSQL("CREATE TABLE dust_data (" +
+                "_id Integer PRIMARY KEY AUTOINCREMENT, " +
+                "city TEXT, " +
+                "sido TEXT, " +
+                "dong TEXT, " +
+                "year Integer, " +
+                "month Integer, " +
+                "day Integer, " +
+                "hour Integer, " +
+                "minute Integer, " +
+                "covalue REAL, " +
+                "no2value REAL, " +
+                "o3value REAL, " +
+                "pm10value Integer, " +
+                "pm25value Integer, " +
+                "so2value REAL);");
     }
 
     @Override
@@ -31,43 +52,83 @@ public class DBHelperDust extends SQLiteOpenHelper {
 
     }
 
-    public void insertDustList(String create_at, String item, int price) {
+    public void insertDustList(ArrayList<Dust> dustArryList) {
         SQLiteDatabase db = getWritableDatabase();
-        db.execSQL("INSERT INTO dust_data VALUES(null, '" + item + "', " + price + ", '" + create_at + "');");
-        db.close();
-    }
 
-    public void update(String item, int price) {
-        SQLiteDatabase db = getWritableDatabase();
-        db.execSQL("UPDATE dust_data SET price=" + price + " WHERE item='" + item + "';");
-        db.close();
-    }
+        for(int i = 0; i < dustArryList.size(); i++) {
+            ContentValues values = new ContentValues();
+            values.put("year", dustArryList.get(i).getYear());
+            values.put("month", dustArryList.get(i).getMonth());
+            values.put("day", dustArryList.get(i).getDay());
+            values.put("hour", dustArryList.get(i).getHour());  //do not need to update
+            values.put("minute", dustArryList.get(i).getMinute());
+            values.put("covalue", dustArryList.get(i).getmCO());
+            values.put("no2value", dustArryList.get(i).getmNO2());
+            values.put("o3value", dustArryList.get(i).getmO3());
+            values.put("pm10value", dustArryList.get(i).getmPM10());
+            values.put("pm25value", dustArryList.get(i).getmPM25());
+            values.put("so2value", dustArryList.get(i).getmSO2());
 
-    public void delete(String item) {
-        SQLiteDatabase db = getWritableDatabase();
-        db.execSQL("DELETE FROM dust_data WHERE item='" + item + "';");
-        db.close();
-    }
-
-    public String getResult() {
-        // 읽기가 가능하게 DB 열기
-        SQLiteDatabase db = getReadableDatabase();
-        String result = "";
-
-        // DB에 있는 데이터를 쉽게 처리하기 위해 Cursor를 사용하여 테이블에 있는 모든 데이터 출력
-        Cursor cursor = db.rawQuery("SELECT * FROM MONEYBOOK", null);
-        while (cursor.moveToNext()) {
-            result += cursor.getString(0)
-                    + " : "
-                    + cursor.getString(1)
-                    + " | "
-                    + cursor.getInt(2)
-                    + "원 "
-                    + cursor.getString(3)
-                    + "\n";
+            db.insert("dust_data", null, values);
         }
+        db.close();
+    }
 
-        return result;
+    //Dust 정보 업데이트
+    public void updateDust(String sido, int hour, Dust dust) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("year", dust.getYear());
+        values.put("month", dust.getMonth());
+        values.put("day", dust.getDay());
+        //values.put("hour", dust.getHour());  //do not need to update
+        values.put("minute", dust.getMinute());
+        values.put("covalue", dust.getmCO());
+        values.put("no2value", dust.getmNO2());
+        values.put("o3value", dust.getmO3());
+        values.put("pm10value", dust.getmPM10());
+        values.put("pm25value", dust.getmPM25());
+        values.put("so2value", dust.getmSO2());
+
+        db.update("dust_data", values, "hour=?", new String[]{String.valueOf(hour)});
+        db.close();
+    }
+
+    public void delete(String sido) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("dust_data", "sido=?", new String[]{String.valueOf(sido)});
+        db.close();
+    }
+
+    public ArrayList<Dust> getDustList(String sido) {
+        ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
+        SQLiteDatabase db = getWritableDatabase();
+
+        //Cursor cursor = db.rawQuery("SELECT _id, city, sido, dong, year, month, day, hour, minute, covalue, no2value, o3value, pm10value, pm25value, so2value FROM dust_data", null);
+        Cursor cursor = db.query("dust_data", null, null, null, null, null, null);
+
+        while (cursor.moveToNext()) {
+            if(sido.equalsIgnoreCase(cursor.getString(cursor.getColumnIndex("sido")))) {
+                Dust dust = new Dust(cursor.getInt(cursor.getColumnIndex("_id")), //id
+                        cursor.getString(cursor.getColumnIndex("city")), //city
+                        cursor.getString(cursor.getColumnIndex("sido")), //sido
+                        cursor.getString(cursor.getColumnIndex("dong")), //dong
+                        cursor.getInt(cursor.getColumnIndex("year")), //year
+                        cursor.getInt(cursor.getColumnIndex("month")), //month
+                        cursor.getInt(cursor.getColumnIndex("day")), //day
+                        cursor.getInt(cursor.getColumnIndex("hour")), //hour
+                        cursor.getInt(cursor.getColumnIndex("minute")), //minute
+                        cursor.getFloat(cursor.getColumnIndex("covalue")), //covalue
+                        cursor.getFloat(cursor.getColumnIndex("no2value")), //no2value
+                        cursor.getFloat(cursor.getColumnIndex("o3value")), //o3vaule
+                        cursor.getInt(cursor.getColumnIndex("pm10value")), //pm10value
+                        cursor.getInt(cursor.getColumnIndex("pm25value")), //pm25value
+                        cursor.getFloat(cursor.getColumnIndex("so2value")) //so2value
+                        );
+                dustArrayList.add(dust);
+            }
+        }
+        return dustArrayList;
     }
 }
 

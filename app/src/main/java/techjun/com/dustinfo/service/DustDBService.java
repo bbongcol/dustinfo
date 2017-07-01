@@ -15,10 +15,8 @@ import android.os.Message;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
-import android.widget.RemoteViews;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,17 +24,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
-import techjun.com.dustinfo.MainActivity;
 import techjun.com.dustinfo.R;
 import techjun.com.dustinfo.SplashActivity;
-import techjun.com.dustinfo.model.Dust;
+import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 public class DustDBService extends Service {
@@ -46,7 +40,7 @@ public class DustDBService extends Service {
 
     private NotificationManager mNotificationManager = null;
     private android.support.v4.app.NotificationCompat.Builder mNotifyBuilder = null;
-    Dust myDust;
+    DustSet myDustSet;
 
     private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
     private final int START_POOLING = 1001;
@@ -69,7 +63,7 @@ public class DustDBService extends Service {
     public void onCreate() {
         super.onCreate();
         //Log.d(TAG, "onCreate");
-        myDust = new Dust();
+        myDustSet = new DustSet();
 
         createNotification();
     }
@@ -129,9 +123,9 @@ public class DustDBService extends Service {
     }
 
     /** method for clients */
-    public ArrayList<Dust> getDustData(String[] address) {
-        ArrayList<Dust> mDust = new ArrayList<Dust>();
-        return mDust;
+    public ArrayList<DustSet> getDustData(String[] address) {
+        ArrayList<DustSet> mDustSet = new ArrayList<DustSet>();
+        return mDustSet;
     }
 
     // Handler 클래스
@@ -173,9 +167,9 @@ public class DustDBService extends Service {
 
         @Override
         protected void onPostExecute(Integer result) {
-            //Log.d("onPostExecute", myDust +" " + myDust.getmPM10()[0]);
+            //Log.d("onPostExecute", myDustSet +" " + myDustSet.getmPM10()[0]);
             //if (myCallback != null) {
-            //    myCallback.OnCurrentDust(myDust);
+            //    myCallback.OnCurrentDust(myDustSet);
             //}
 
             long now = System.currentTimeMillis();
@@ -186,7 +180,7 @@ public class DustDBService extends Service {
             // nowDate 변수에 값을 저장한다.
             String formatDate = sdfNow.format(date);
 
-            mNotifyBuilder.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+myDust.getmPM10()[0]+"  초미세먼지:"+myDust.getmPM25()[0])
+            mNotifyBuilder.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ myDustSet.getmPM10()[0]+"  초미세먼지: "+ myDustSet.getmPM25()[0])
                     .setWhen(System.currentTimeMillis());
             mNotificationManager.notify(1, mNotifyBuilder.build());
         }
@@ -215,16 +209,16 @@ public class DustDBService extends Service {
 
             //Log.d(TAG,""+json.length());
             for(int i=0; i < json.length() - 1; i++) {
-                myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
-                myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
-                myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
-                //Log.d(TAG,myDust.getmCurDataTime()[i] + " " + myDust.getmPM10()[i] + " " + myDust.getmPM25()[i]);
+                myDustSet.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
+                myDustSet.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
+                myDustSet.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                //Log.d(TAG,myDustSet.getmCurDataTime()[i] + " " + myDustSet.getmPM10()[i] + " " + myDustSet.getmPM25()[i]);
             }
 
             //JSONObject sObject = new JSONObject();
-            //sObject.put("address0", myDust.getmCurLocation()[0]);
-            //sObject.put("address1", myDust.getmCurLocation()[1]);
-            //sObject.put("address2", myDust.getmCurLocation()[2]);
+            //sObject.put("address0", myDustSet.getmCurLocation()[0]);
+            //sObject.put("address1", myDustSet.getmCurLocation()[1]);
+            //sObject.put("address2", myDustSet.getmCurLocation()[2]);
             //json.put(sObject);
             //savePreferences(dust_data_preference, json.toString());
 
@@ -239,9 +233,9 @@ public class DustDBService extends Service {
     private String getDustUrl() {
         StringBuffer sb = new StringBuffer();
         sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        myDust.setmCurLocation(LocationUtil.getInstance(getApplicationContext()).getAddressList());
-        //myDust.setmCurLocation(new String[]{"서울","서초구",""});
-        switch(myDust.getmCurLocation()[0]) {
+        myDustSet.setmCurLocation(LocationUtil.getInstance(getApplicationContext()).getAddressList());
+        //myDustSet.setmCurLocation(new String[]{"서울","서초구",""});
+        switch(myDustSet.getmCurLocation()[0]) {
             case "충청북도":
                 sb.append("충북");
                 break;
@@ -261,11 +255,11 @@ public class DustDBService extends Service {
                 sb.append("경남");
                 break;
             default:
-                sb.append(myDust.getmCurLocation()[0].substring(0,2));
+                sb.append(myDustSet.getmCurLocation()[0].substring(0,2));
                 break;
         }
         sb.append("/");
-        sb.append(myDust.getmCurLocation()[1]);
+        sb.append(myDustSet.getmCurLocation()[1]);
         return String.valueOf(sb);
     }
 

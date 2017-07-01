@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import techjun.com.dustinfo.R;
-import techjun.com.dustinfo.model.Dust;
+import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -32,11 +32,11 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class DustService {
     public interface OnCurrentDustCB {
-        void OnCurrentDust(Dust curDust);
+        void OnCurrentDust(DustSet curDustSet);
     }
 
     private static DustService sInstance = null;
-    Dust myDust;
+    DustSet myDustSet;
     private OnCurrentDustCB myCallback;
     private Context mContext;
     final static String TAG = "DustService";
@@ -45,7 +45,7 @@ public class DustService {
 
     public DustService(Context context) {
         mContext = context;
-        myDust = new Dust();
+        myDustSet = new DustSet();
         restoreDustInfo();
     }
 
@@ -70,15 +70,15 @@ public class DustService {
         new JsonLoadingTask().execute();
     }
 
-    public Dust getCurDustInfo () {
-        return myDust;
+    public DustSet getCurDustInfo () {
+        return myDustSet;
     }
 
     public Date getLastDustInfoTime () {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         Date dustDataTime = null;
         try {
-            dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
+            dustDataTime = df.parse(myDustSet.getmCurDataTime()[0]);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -99,27 +99,27 @@ public class DustService {
 
         @Override
         protected void onPostExecute(Integer result) {
-            //Log.d("onPostExecute", myDust +" " + myDust.getmPM10()[0]);
+            //Log.d("onPostExecute", myDustSet +" " + myDustSet.getmPM10()[0]);
             if (myCallback != null) {
-                myCallback.OnCurrentDust(myDust);
+                myCallback.OnCurrentDust(myDustSet);
             }
         }
     }
 
     boolean checkNeedToUpdate() {
         boolean needToUpdate = false;
-        //Log.d(TAG,"myDust.getmCurLocation()[1]:"+myDust.getmCurLocation()[1]+" LocationUtil.getInstance(mContext).getAddressList()[1]:"+LocationUtil.getInstance(mContext).getAddressList()[1]);
+        //Log.d(TAG,"myDustSet.getmCurLocation()[1]:"+myDustSet.getmCurLocation()[1]+" LocationUtil.getInstance(mContext).getAddressList()[1]:"+LocationUtil.getInstance(mContext).getAddressList()[1]);
 
-        if(myDust.getmPM10()[0] == 0 && myDust.getmPM25()[0] == 0) {
+        if(myDustSet.getmPM10()[0] == 0 && myDustSet.getmPM25()[0] == 0) {
             Log.d(TAG,"Update Case - data is 0");
             needToUpdate = true;
-        } else if(myDust.getmCurLocation()[1]!=null && myDust.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance(mContext).getAddressList()[1])) {
-            //if (myDust.getmCurLocation()[0] == null) {
-            //    myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
+        } else if(myDustSet.getmCurLocation()[1]!=null && myDustSet.getmCurLocation()[1].equalsIgnoreCase(LocationUtil.getInstance(mContext).getAddressList()[1])) {
+            //if (myDustSet.getmCurLocation()[0] == null) {
+            //    myDustSet.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
             //}
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             try {
-                Date dustDataTime = df.parse(myDust.getmCurDataTime()[0]);
+                Date dustDataTime = df.parse(myDustSet.getmCurDataTime()[0]);
                 Date curDateTime = df.parse(df.format(new Date()));
 
                 long diff = curDateTime.getTime() - dustDataTime.getTime();
@@ -165,16 +165,16 @@ public class DustService {
 
             //Log.d(TAG,""+json.length());
             for(int i=0; i < json.length() - 1; i++) {
-                myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
-                myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
-                myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
-                //Log.d(TAG,myDust.getmCurDataTime()[i] + " " + myDust.getmPM10()[i] + " " + myDust.getmPM25()[i]);
+                myDustSet.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
+                myDustSet.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
+                myDustSet.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                //Log.d(TAG,myDustSet.getmCurDataTime()[i] + " " + myDustSet.getmPM10()[i] + " " + myDustSet.getmPM25()[i]);
             }
 
             JSONObject sObject = new JSONObject();
-            sObject.put("address0", myDust.getmCurLocation()[0]);
-            sObject.put("address1", myDust.getmCurLocation()[1]);
-            sObject.put("address2", myDust.getmCurLocation()[2]);
+            sObject.put("address0", myDustSet.getmCurLocation()[0]);
+            sObject.put("address1", myDustSet.getmCurLocation()[1]);
+            sObject.put("address2", myDustSet.getmCurLocation()[2]);
             json.put(sObject);
             savePreferences(dust_data_preference, json.toString());
 
@@ -189,9 +189,9 @@ public class DustService {
     public String getDustUrl() {
         StringBuffer sb = new StringBuffer();
         sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
+        myDustSet.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
 
-        switch(myDust.getmCurLocation()[0]) {
+        switch(myDustSet.getmCurLocation()[0]) {
             case "충청북도":
                 sb.append("충북");
                 break;
@@ -211,11 +211,11 @@ public class DustService {
                 sb.append("경남");
                 break;
             default:
-                sb.append(myDust.getmCurLocation()[0].substring(0,2));
+                sb.append(myDustSet.getmCurLocation()[0].substring(0,2));
                 break;
         }
         sb.append("/");
-        sb.append(myDust.getmCurLocation()[1]);
+        sb.append(myDustSet.getmCurLocation()[1]);
         return String.valueOf(sb);
     }
 
@@ -263,15 +263,15 @@ public class DustService {
         try {
             if(json != null ) {
                 for (int i = 0; i < json.length() - 2; i++) {
-                    myDust.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
-                    myDust.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
-                    myDust.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
+                    myDustSet.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
+                    myDustSet.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
+                    myDustSet.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
                     Log.d(TAG,"getPreferences OK");
                 }
 
-                myDust.getmCurLocation()[0] = json.getJSONObject(json.length()-1).getString("address0");
-                myDust.getmCurLocation()[1] = json.getJSONObject(json.length()-1).getString("address1");
-                myDust.getmCurLocation()[2] = json.getJSONObject(json.length()-1).getString("address2");
+                myDustSet.getmCurLocation()[0] = json.getJSONObject(json.length()-1).getString("address0");
+                myDustSet.getmCurLocation()[1] = json.getJSONObject(json.length()-1).getString("address1");
+                myDustSet.getmCurLocation()[2] = json.getJSONObject(json.length()-1).getString("address2");
             }
         } catch (JSONException e) {
             e.printStackTrace();
