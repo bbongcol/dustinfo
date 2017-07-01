@@ -98,10 +98,12 @@ public class DustDBService extends Service {
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         //커스텀 화면 만들기
+        /*
         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_notification);
         remoteViews.setImageViewResource(R.id.img, R.mipmap.ic_launcher);
         remoteViews.setTextViewText(R.id.title, "Title");
         remoteViews.setTextViewText(R.id.message, "message");
+        */
 
         mNotifyBuilder = new NotificationCompat.Builder(this)
                 //.setContentTitle("미세먼지 : ")
