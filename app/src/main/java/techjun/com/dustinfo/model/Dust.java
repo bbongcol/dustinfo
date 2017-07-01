@@ -6,9 +6,8 @@ package techjun.com.dustinfo.model;
 
 public class Dust {
     private int index;
-    private String mCity;
     private String mSido;
-    private String mDong;
+    private String mCity;
     private int year;
     private int month;
     private int day;
@@ -23,11 +22,26 @@ public class Dust {
 
     public Dust() {}
 
-    public Dust(int index, String mCity, String mSido, String mDong, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
-        this.index = index;
-        this.mCity = mCity;
+    public Dust(String mSido, String mCity, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
         this.mSido = mSido;
-        this.mDong = mDong;
+        this.mCity = mCity;
+        this.year = year;
+        this.month = month;
+        this.day = day;
+        this.hour = hour;
+        this.minute = minute;
+        this.mCO = mCO;
+        this.mNO2 = mNO2;
+        this.mO3 = mO3;
+        this.mPM10 = mPM10;
+        this.mPM25 = mPM25;
+        this.mSO2 = mSO2;
+    }
+
+    public Dust(int index, String mSido, String mCity, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
+        this.index = index;
+        this.mSido = mSido;
+        this.mCity = mCity;
         this.year = year;
         this.month = month;
         this.day = day;
@@ -63,14 +77,6 @@ public class Dust {
 
     public void setmSido(String mSido) {
         this.mSido = mSido;
-    }
-
-    public String getmDong() {
-        return mDong;
-    }
-
-    public void setmDong(String mDong) {
-        this.mDong = mDong;
     }
 
     public int getYear() {

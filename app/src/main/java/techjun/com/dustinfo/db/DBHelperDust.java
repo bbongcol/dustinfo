@@ -31,9 +31,8 @@ public class DBHelperDust extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE dust_data (" +
                 "_id Integer PRIMARY KEY AUTOINCREMENT, " +
-                "city TEXT, " +
                 "sido TEXT, " +
-                "dong TEXT, " +
+                "city TEXT, " +
                 "year Integer, " +
                 "month Integer, " +
                 "day Integer, " +
@@ -57,10 +56,12 @@ public class DBHelperDust extends SQLiteOpenHelper {
 
         for(int i = 0; i < dustArryList.size(); i++) {
             ContentValues values = new ContentValues();
+            values.put("sido", dustArryList.get(i).getmSido());
+            values.put("city", dustArryList.get(i).getmCity());
             values.put("year", dustArryList.get(i).getYear());
             values.put("month", dustArryList.get(i).getMonth());
             values.put("day", dustArryList.get(i).getDay());
-            values.put("hour", dustArryList.get(i).getHour());  //do not need to update
+            values.put("hour", dustArryList.get(i).getHour());
             values.put("minute", dustArryList.get(i).getMinute());
             values.put("covalue", dustArryList.get(i).getmCO());
             values.put("no2value", dustArryList.get(i).getmNO2());
@@ -75,7 +76,7 @@ public class DBHelperDust extends SQLiteOpenHelper {
     }
 
     //Dust 정보 업데이트
-    public void updateDust(String sido, int hour, Dust dust) {
+    public void updateDust(String city, int hour, Dust dust) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put("year", dust.getYear());
@@ -90,17 +91,17 @@ public class DBHelperDust extends SQLiteOpenHelper {
         values.put("pm25value", dust.getmPM25());
         values.put("so2value", dust.getmSO2());
 
-        db.update("dust_data", values, "hour=?", new String[]{String.valueOf(hour)});
+        db.update("dust_data", values, "city=? AND hour=?", new String[]{city, String.valueOf(hour)});
         db.close();
     }
 
-    public void delete(String sido) {
+    public void delete(String city) {
         SQLiteDatabase db = getWritableDatabase();
-        db.delete("dust_data", "sido=?", new String[]{String.valueOf(sido)});
+        db.delete("dust_data", "city=?", new String[]{String.valueOf(city)});
         db.close();
     }
 
-    public ArrayList<Dust> getDustList(String sido) {
+    public ArrayList<Dust> getDustList(String city) {
         ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
         SQLiteDatabase db = getWritableDatabase();
 
@@ -108,11 +109,10 @@ public class DBHelperDust extends SQLiteOpenHelper {
         Cursor cursor = db.query("dust_data", null, null, null, null, null, null);
 
         while (cursor.moveToNext()) {
-            if(sido.equalsIgnoreCase(cursor.getString(cursor.getColumnIndex("sido")))) {
+            if(city.equalsIgnoreCase(cursor.getString(cursor.getColumnIndex("city")))) {
                 Dust dust = new Dust(cursor.getInt(cursor.getColumnIndex("_id")), //id
-                        cursor.getString(cursor.getColumnIndex("city")), //city
                         cursor.getString(cursor.getColumnIndex("sido")), //sido
-                        cursor.getString(cursor.getColumnIndex("dong")), //dong
+                        cursor.getString(cursor.getColumnIndex("city")), //city
                         cursor.getInt(cursor.getColumnIndex("year")), //year
                         cursor.getInt(cursor.getColumnIndex("month")), //month
                         cursor.getInt(cursor.getColumnIndex("day")), //day

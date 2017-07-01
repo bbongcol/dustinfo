@@ -17,28 +17,29 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import techjun.com.dustinfo.db.DBHelperDust;
+import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.utils.LocationUtil;
 import techjun.com.dustinfo.utils.NotificationUtil;
 
 public class DustDBService extends Service {
-
-    private final IBinder mBinder = new LocalBinder();
-    private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
-    private NotificationUtil notificationUtil;
-
-    DustSet myDustSet;
-
     private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
     private final int START_POOLING = 1001;
     private final int STOP_POOLING = 1002;
     private final int DO_POOLING = 1003;
-
     private final String TAG = "DustDBService";
+
+    private final IBinder mBinder = new LocalBinder();
+    private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
+    private NotificationUtil notificationUtil;
+    private DBHelperDust mDBHelperDust;
 
     public DustDBService() {
 
@@ -54,8 +55,8 @@ public class DustDBService extends Service {
     public void onCreate() {
         super.onCreate();
         //Log.d(TAG, "onCreate");
-        myDustSet = new DustSet();
         notificationUtil = NotificationUtil.getInstance(this);
+        mDBHelperDust = new DBHelperDust(this);
     }
 
     @Override
@@ -111,13 +112,9 @@ public class DustDBService extends Service {
     private class JsonLoadingTask extends AsyncTask<String, Void, Integer> {
         @Override
         protected Integer doInBackground(String... strs) {
-            //if(checkNeedToUpdate()) {
-            //    Log.d(TAG,"Update Now");
-                return getJsonText();
-            //} else {
-            //    Log.d(TAG,"No Update");
-            //    return 0;
-            //}
+            //TODO 위치가 추가되면 여기서 for 문으로 추가하기
+            getDustInfoJson(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity());
+            return 0;
         }
 
         @Override
@@ -135,7 +132,10 @@ public class DustDBService extends Service {
             // nowDate 변수에 값을 저장한다.
             String formatDate = sdfNow.format(date);
 
-            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ myDustSet.getmPM10()[0]+"  초미세먼지: "+ myDustSet.getmPM25()[0]);
+            ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
+            dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+
+            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
             notificationUtil.notify(0);
         }
     }
@@ -144,30 +144,57 @@ public class DustDBService extends Service {
      * 원격으로부터 JSON형태의 문서를 받아서
      * JSON 객체를 생성한 다음에 객체에서 필요한 데이터 추출
      */
-    private int getJsonText() {
+    private int getDustInfoJson(String[] sidocity) {
         try {
             //서버 통신 확인
             //String jsonTmp = getStringFromUrl("https://lit-inlet-76867.herokuapp.com");
 
             //주어진 URL 문서의 내용을 문자열로 얻는다.
-            String jsonPage = getStringFromUrl(getDustUrl());
+            String jsonPage = getStringFromUrl(getDustUrl(sidocity));
 
             //JSON객체를 JSONArray로 변경
             JSONArray json = new JSONArray(jsonPage);
 
             if(json.getJSONObject(0).has("msg") &&
                     json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
-                jsonPage = getStringFromUrl(getDustUrl());
+                jsonPage = getStringFromUrl(getDustUrl(sidocity));
                 json = new JSONArray(jsonPage);
             }
 
-            //Log.d(TAG,""+json.length());
+            ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            Date dustDataTime = null;
+
             for(int i=0; i < json.length() - 1; i++) {
-                myDustSet.getmPM10()[i] = json.getJSONObject(i).getInt("pm10Value");
-                myDustSet.getmPM25()[i] = json.getJSONObject(i).getInt("pm25Value");
-                myDustSet.getmCurDataTime()[i] = json.getJSONObject(i).getString("dataTime");
-                //Log.d(TAG,myDustSet.getmCurDataTime()[i] + " " + myDustSet.getmPM10()[i] + " " + myDustSet.getmPM25()[i]);
+                try {
+                    dustDataTime = df.parse(json.getJSONObject(i).getString("dataTime"));
+                }  catch (ParseException e) {
+                    e.printStackTrace();
+                }
+
+                Dust dust = new Dust(
+                        json.getJSONObject(i).getString("sidoName"),
+                        json.getJSONObject(i).getString("cityName"),
+
+                        dustDataTime.getYear(),
+                        dustDataTime.getMonth(),
+                        dustDataTime.getDay(),
+                        dustDataTime.getHours(),
+                        dustDataTime.getMinutes(),
+
+                        (float)json.getJSONObject(i).getDouble("coValue"),
+                        (float)json.getJSONObject(i).getDouble("no2Value"),
+                        (float)json.getJSONObject(i).getDouble("o3Value"),
+                        json.getJSONObject(i).getInt("pm10Value"),
+                        json.getJSONObject(i).getInt("pm25Value"),
+                        (float)json.getJSONObject(i).getDouble("so2Value")
+                );
+                dustArrayList.add(dust);
             }
+
+            //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요
+            mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+            mDBHelperDust.insertDustList(dustArrayList);
 
             //JSONObject sObject = new JSONObject();
             //sObject.put("address0", myDustSet.getmCurLocation()[0]);
@@ -184,36 +211,12 @@ public class DustDBService extends Service {
     }//getJsonText()-----------
 
     //현재 위치 String을 이용해 https 주소를 생성한다
-    private String getDustUrl() {
+    private String getDustUrl(String[] sidocity) {
         StringBuffer sb = new StringBuffer();
         sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        myDustSet.setmCurLocation(LocationUtil.getInstance(getApplicationContext()).getAddressList());
-        //myDustSet.setmCurLocation(new String[]{"서울","서초구",""});
-        switch(myDustSet.getmCurLocation()[0]) {
-            case "충청북도":
-                sb.append("충북");
-                break;
-            case "충청남도":
-                sb.append("충남");
-                break;
-            case "전라북도":
-                sb.append("전북");
-                break;
-            case "전라남도":
-                sb.append("전남");
-                break;
-            case "경상북도":
-                sb.append("경북");
-                break;
-            case "경상남도":
-                sb.append("경남");
-                break;
-            default:
-                sb.append(myDustSet.getmCurLocation()[0].substring(0,2));
-                break;
-        }
+        sb.append(sidocity[0]);
         sb.append("/");
-        sb.append(myDustSet.getmCurLocation()[1]);
+        sb.append(sidocity[1]);
         return String.valueOf(sb);
     }
 

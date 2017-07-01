@@ -89,6 +89,68 @@ public class LocationUtil {
         return currentLocation;
     }
 
+    public String[] getCurrentSidoCity() {
+        ArrayList<String> bf = new ArrayList<String>();
+        double lat = 0, lng = 0;
+        Geocoder geocoder = new Geocoder(mContext, Locale.KOREA);
+        List<Address> address;
+
+        Location userLocation = getMyLocation();
+
+        if( userLocation != null ) {
+            // TODO 위치를 처음 얻어왔을 때 하고 싶은 것
+            lat = userLocation.getLatitude();
+            lng = userLocation.getLongitude();
+        }
+
+        try {
+            if (geocoder != null && userLocation != null) {
+                // 세번째 인수는 최대결과값인데 하나만 리턴받도록 설정했다
+                address = geocoder.getFromLocation(lat, lng, 1);
+                // 설정한 데이터로 주소가 리턴된 데이터가 있으면
+                if (address != null && address.size() > 0) {
+                    // 전송할 주소 데이터 (위도/경도 포함 편집)
+                    switch(address.get(0).getAdminArea()) {
+                        case "충청북도":
+                            bf.add("충북");
+                            break;
+                        case "충청남도":
+                            bf.add("충남");
+                            break;
+                        case "전라북도":
+                            bf.add("전북");
+                            break;
+                        case "전라남도":
+                            bf.add("전남");
+                            break;
+                        case "경상북도":
+                            bf.add("경북");
+                            break;
+                        case "경상남도":
+                            bf.add("경남");
+                            break;
+                        default:
+                            bf.add(address.get(0).getAdminArea().substring(0,2));
+                            break;
+                    }
+                    bf.add(address.get(0).getLocality());
+                }
+            } else {
+                bf.add("서울");
+                bf.add("서초구");
+            }
+
+        } catch (IOException e) {
+            Toast.makeText(mContext, "주소취득 실패"
+                    , Toast.LENGTH_LONG).show();
+
+            e.printStackTrace();
+
+        }
+
+        return bf.toArray(new String[bf.size()]);
+    }
+
     public ArrayList<String> getAddressArrayList() {
         ArrayList<String> bf = new ArrayList<String>();
         double lat = 0, lng = 0;
@@ -134,6 +196,4 @@ public class LocationUtil {
         ArrayList<String> myAddress = getAddressArrayList();
         return myAddress.toArray(new String[myAddress.size()]);
     }
-
-
 }
