@@ -1,19 +1,12 @@
 package techjun.com.dustinfo.service;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.v4.app.TaskStackBuilder;
-import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -28,18 +21,16 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-import techjun.com.dustinfo.R;
-import techjun.com.dustinfo.SplashActivity;
 import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.utils.LocationUtil;
+import techjun.com.dustinfo.utils.NotificationUtil;
 
 public class DustDBService extends Service {
 
     private final IBinder mBinder = new LocalBinder();
     private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
+    private NotificationUtil notificationUtil;
 
-    private NotificationManager mNotificationManager = null;
-    private android.support.v4.app.NotificationCompat.Builder mNotifyBuilder = null;
     DustSet myDustSet;
 
     private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
@@ -64,8 +55,7 @@ public class DustDBService extends Service {
         super.onCreate();
         //Log.d(TAG, "onCreate");
         myDustSet = new DustSet();
-
-        createNotification();
+        notificationUtil = NotificationUtil.getInstance(this);
     }
 
     @Override
@@ -85,41 +75,6 @@ public class DustDBService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
-    }
-
-    private void createNotification() {
-
-        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        //커스텀 화면 만들기
-        /*
-        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_notification);
-        remoteViews.setImageViewResource(R.id.img, R.mipmap.ic_launcher);
-        remoteViews.setTextViewText(R.id.title, "Title");
-        remoteViews.setTextViewText(R.id.message, "message");
-        */
-
-        mNotifyBuilder = new NotificationCompat.Builder(this)
-                //.setContentTitle("미세먼지 : ")
-                .setOngoing(true) // Cant cancel your notification (except notificationManager.cancel(); )
-                .setSmallIcon(R.drawable.ic_cloud_queue);
-                //.setContent(remoteViews)  //Custom View
-                //.setNumber(100);
-                //.setDefaults(Notification.DEFAULT_ALL  //알림 진동이 온다
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mNotifyBuilder.setCategory(Notification.CATEGORY_STATUS)
-                    //.setPriority(Notification.PRIORITY_HIGH)
-                    .setVisibility(Notification.VISIBILITY_PUBLIC);
-
-        //알람 누를때 앱 띄우기
-        Intent resultIntent = new Intent(this, SplashActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-        mNotifyBuilder.setContentIntent(resultPendingIntent);
-
-        }
     }
 
     /** method for clients */
@@ -180,9 +135,8 @@ public class DustDBService extends Service {
             // nowDate 변수에 값을 저장한다.
             String formatDate = sdfNow.format(date);
 
-            mNotifyBuilder.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ myDustSet.getmPM10()[0]+"  초미세먼지: "+ myDustSet.getmPM25()[0])
-                    .setWhen(System.currentTimeMillis());
-            mNotificationManager.notify(1, mNotifyBuilder.build());
+            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ myDustSet.getmPM10()[0]+"  초미세먼지: "+ myDustSet.getmPM25()[0]);
+            notificationUtil.notify(0);
         }
     }
 
