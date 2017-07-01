@@ -1,13 +1,21 @@
 package techjun.com.dustinfo.service;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.v4.app.TaskStackBuilder;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.widget.RemoteViews;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,9 +26,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import techjun.com.dustinfo.MainActivity;
+import techjun.com.dustinfo.R;
+import techjun.com.dustinfo.SplashActivity;
 import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.utils.LocationUtil;
 
@@ -28,6 +43,9 @@ public class DustDBService extends Service {
 
     private final IBinder mBinder = new LocalBinder();
     private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
+
+    private NotificationManager mNotificationManager = null;
+    private android.support.v4.app.NotificationCompat.Builder mNotifyBuilder = null;
     Dust myDust;
 
     private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
@@ -52,16 +70,15 @@ public class DustDBService extends Service {
         super.onCreate();
         //Log.d(TAG, "onCreate");
         myDust = new Dust();
+
+        createNotification();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //Log.d(TAG, "onStartCommand");
-        //Log.d(TAG, "onStartCommand - hasMessages(DO_POOLING):"+mMainHandler.hasMessages(DO_POOLING));
-        //if(!mMainHandler.hasMessages(DO_POOLING) && !mMainHandler.hasMessages(START_POOLING)) {
         mMainHandler.removeMessages(DO_POOLING);
         mMainHandler.sendEmptyMessage(START_POOLING);
-        //}
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -71,11 +88,42 @@ public class DustDBService extends Service {
         //Log.d(TAG, "onDestroy");
     }
 
-
-
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
+    }
+
+    private void createNotification() {
+
+        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        //커스텀 화면 만들기
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_notification);
+        remoteViews.setImageViewResource(R.id.img, R.mipmap.ic_launcher);
+        remoteViews.setTextViewText(R.id.title, "Title");
+        remoteViews.setTextViewText(R.id.message, "message");
+
+        mNotifyBuilder = new NotificationCompat.Builder(this)
+                //.setContentTitle("미세먼지 : ")
+                .setOngoing(true) // Cant cancel your notification (except notificationManager.cancel(); )
+                .setSmallIcon(R.drawable.ic_cloud_queue);
+                //.setContent(remoteViews)  //Custom View
+                //.setNumber(100);
+                //.setDefaults(Notification.DEFAULT_ALL  //알림 진동이 온다
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mNotifyBuilder.setCategory(Notification.CATEGORY_STATUS)
+                    //.setPriority(Notification.PRIORITY_HIGH)
+                    .setVisibility(Notification.VISIBILITY_PUBLIC);
+
+        //알람 누를때 앱 띄우기
+        Intent resultIntent = new Intent(this, SplashActivity.class);
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+        mNotifyBuilder.setContentIntent(resultPendingIntent);
+
+        }
     }
 
     /** method for clients */
@@ -86,7 +134,6 @@ public class DustDBService extends Service {
 
     // Handler 클래스
     class SendMassgeHandler extends Handler {
-
         @Override
         public void handleMessage(Message msg) {
             //Log.d(TAG, "handleMessage");
@@ -128,6 +175,18 @@ public class DustDBService extends Service {
             //if (myCallback != null) {
             //    myCallback.OnCurrentDust(myDust);
             //}
+
+            long now = System.currentTimeMillis();
+            // 현재시간을 date 변수에 저장한다.
+            Date date = new Date(now);
+            // 시간을 나타냇 포맷을 정한다 ( yyyy/MM/dd 같은 형태로 변형 가능 )
+            SimpleDateFormat sdfNow = new SimpleDateFormat("HH:mm");
+            // nowDate 변수에 값을 저장한다.
+            String formatDate = sdfNow.format(date);
+
+            mNotifyBuilder.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+myDust.getmPM10()[0]+"  초미세먼지:"+myDust.getmPM25()[0])
+                    .setWhen(System.currentTimeMillis());
+            mNotificationManager.notify(1, mNotifyBuilder.build());
         }
     }
 
@@ -178,8 +237,8 @@ public class DustDBService extends Service {
     private String getDustUrl() {
         StringBuffer sb = new StringBuffer();
         sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        //myDust.setmCurLocation(LocationUtil.getInstance(mContext).getAddressList());
-        myDust.setmCurLocation(new String[]{"서울","서초구",""});
+        myDust.setmCurLocation(LocationUtil.getInstance(getApplicationContext()).getAddressList());
+        //myDust.setmCurLocation(new String[]{"서울","서초구",""});
         switch(myDust.getmCurLocation()[0]) {
             case "충청북도":
                 sb.append("충북");
