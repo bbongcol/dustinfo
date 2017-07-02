@@ -43,9 +43,6 @@ public class MainActivity extends AppCompatActivity
 
     final static String TAG = "MainActivity";
 
-    DustDBService mDustDBService;
-    boolean mBound = false;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,17 +65,6 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
-        /*
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-        */
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -91,9 +77,8 @@ public class MainActivity extends AppCompatActivity
         //서비스 실행 및 바인딩
         Intent intent = new Intent(this, DustDBService.class);
         startService(intent);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
-        //mDustDBService.getJsonText();
+        //TODO AIDL로 서비스-프레그먼트 연결하기
     }
 
     @Override
@@ -112,7 +97,6 @@ public class MainActivity extends AppCompatActivity
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        doUnbindService();
     }
 
     @Override
@@ -125,32 +109,6 @@ public class MainActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
-    }
-
-    /** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection mConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service) {
-
-            DustDBService.LocalBinder binder = (DustDBService.LocalBinder) service;
-            mDustDBService = binder.getService();
-            mBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
-
-    void doUnbindService() {
-        if (mBound) {
-            // Detach our existing connection.
-            unbindService(mConnection);
-            mBound = false;
-        }
     }
 
     public String displayAddress (String[] address) {
@@ -176,6 +134,7 @@ public class MainActivity extends AppCompatActivity
         } else {
 
         }
+
         //권한 유무와 상관없이 업데이트
         setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
         DustService.getInstance(this).updateDustInfo();
@@ -273,7 +232,6 @@ public class MainActivity extends AppCompatActivity
 
         transaction.commit();
     }
-
 
     @Override
     public void onFragmentInteraction(Uri uri) {

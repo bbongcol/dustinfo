@@ -1,19 +1,32 @@
 package techjun.com.dustinfo.fragment;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import techjun.com.dustinfo.R;
+import techjun.com.dustinfo.db.DBHelperDust;
+import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.model.DustSet;
+import techjun.com.dustinfo.service.DustDBService;
 import techjun.com.dustinfo.service.DustService;
+import techjun.com.dustinfo.utils.LocationUtil;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -37,8 +50,12 @@ public class MainDustInfoFragment extends Fragment {
 
     private OnFragmentInteractionListener mListener;
     private SwipeRefreshLayout mSwipeRefreshLayout;
-    private DustService dustService;
-    private DustSet myDustSet;
+    //private DustService dustService;
+    //private DustSet myDustSet;
+
+    DustDBService mDustDBService;
+    boolean mBound = false;
+    final static String TAG = "MainDustInfoFragment";
 
     public MainDustInfoFragment() {
         // Required empty public constructor
@@ -81,7 +98,7 @@ public class MainDustInfoFragment extends Fragment {
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                dustService.requestPMInfo();
+                new UpdateDustInfoBGTask().execute();
             }
         });
 
@@ -101,38 +118,47 @@ public class MainDustInfoFragment extends Fragment {
         textPM25Data = (TextView)v.findViewById(R.id.textViewPM25Data);
         textLastTime = (TextView)v.findViewById(R.id.textLastTime);
 
-        dustService = DustService.getInstance(getContext());
-        myDustSet = dustService.getCurDustInfo();
-        if(myDustSet.getmCurDataTime()[0] != null) {
-            //address.setText(displayAddress(myDustSet.getmCurLocation()));
-            textPM10Data.setText(""+ myDustSet.getmPM10()[0]);
-            textPM25Data.setText(""+ myDustSet.getmPM25()[0]);
-            textLastTime.setText(""+ myDustSet.getmCurDataTime()[0]);
-
-        } else {
-            mSwipeRefreshLayout.setRefreshing(true);
-        }
-
-        dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
-            @Override
-            public void OnCurrentDust(DustSet curDustSet) {
-                textPM10Data.setText(""+ myDustSet.getmPM10()[0]);
-                textPM25Data.setText(""+ myDustSet.getmPM25()[0]);
-                textLastTime.setText(""+ myDustSet.getmCurDataTime()[0]);
-
-                mSwipeRefreshLayout.setRefreshing(false);
-            }
-        });
-
-        dustService.requestPMInfo();
+        mSwipeRefreshLayout.setRefreshing(true);
+        doBindService();
 
         return v;
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            DustDBService.LocalBinder binder = (DustDBService.LocalBinder) service;
+            mDustDBService = binder.getService();
+            mBound = true;
+            mDustDBService.registerCallback(new DustDBService.ICurrentDustCallback() {
+                @Override
+                public void OnCurrentDust(ArrayList<Dust> curDustArrayList) {
+                    textPM10Data.setText(""+ curDustArrayList.get(0).getmPM10());
+                    textPM25Data.setText(""+ curDustArrayList.get(0).getmPM25());
+                    textLastTime.setText(""+ curDustArrayList.get(0).getmDateTime());
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
+            });
+            new UpdateDustInfoBGTask().execute();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+    void doBindService() {
+        Log.d(TAG, "doBindService()");
+        getActivity().bindService(new Intent(getActivity(), DustDBService.class), mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    void doUnbindService() {
+        Log.d(TAG, "doUnbindService()");
+        if (mBound) {
+            // Detach our existing connection.
+            getActivity().unbindService(mConnection);
         }
     }
 
@@ -150,6 +176,7 @@ public class MainDustInfoFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
+        doUnbindService();
         mListener = null;
     }
 
@@ -176,5 +203,25 @@ public class MainDustInfoFragment extends Fragment {
             displayAddress = address[0] + " " + address[1];
         }
         return displayAddress;
+    }
+    
+    private class UpdateDustInfoBGTask extends AsyncTask<Void, Void, ArrayList<Dust>> {
+
+        @Override
+        protected ArrayList<Dust> doInBackground(Void... params) {
+            ArrayList<Dust> curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity());
+            return curDustArrayList;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Dust> curDustArrayList) {
+            super.onPostExecute(curDustArrayList);
+            if(curDustArrayList.size() == 24) {
+                textPM10Data.setText("" + curDustArrayList.get(0).getmPM10());
+                textPM25Data.setText("" + curDustArrayList.get(0).getmPM25());
+                textLastTime.setText("" + curDustArrayList.get(0).getmDateTime());
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        }
     }
 }

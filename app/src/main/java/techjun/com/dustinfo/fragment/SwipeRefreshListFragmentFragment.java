@@ -229,19 +229,13 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
             for(int i=0; i < mPM10.length; i++) {
                 dustInfoStr.add(mTime[i] + "    PM10 : " +mPM10[i] + "    PM2.5 : "+ mPM25[i]);
             }
-
-            // Return a new random list of cheeses
             return dustInfoStr;
         }
 
         @Override
         protected void onPostExecute(List<String> result) {
             super.onPostExecute(result);
-
-            // Tell the Fragment that the refresh has completed
             onRefreshComplete(result);
         }
-
     }
-
 }

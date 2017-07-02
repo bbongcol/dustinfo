@@ -21,6 +21,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 
 import techjun.com.dustinfo.db.DBHelperDust;
@@ -30,6 +31,11 @@ import techjun.com.dustinfo.utils.LocationUtil;
 import techjun.com.dustinfo.utils.NotificationUtil;
 
 public class DustDBService extends Service {
+
+    public interface ICurrentDustCallback {
+        void OnCurrentDust(ArrayList<Dust> curDustArrayList);
+    }
+
     private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
     private final int START_POOLING = 1001;
     private final int STOP_POOLING = 1002;
@@ -40,6 +46,7 @@ public class DustDBService extends Service {
     private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
     private NotificationUtil notificationUtil;
     private DBHelperDust mDBHelperDust;
+    private ICurrentDustCallback mCallback;
 
     public DustDBService() {
 
@@ -78,10 +85,61 @@ public class DustDBService extends Service {
         return mBinder;
     }
 
+    public void registerCallback(ICurrentDustCallback cb) {
+        mCallback = cb;
+    }
+
     /** method for clients */
-    public ArrayList<DustSet> getDustData(String[] address) {
-        ArrayList<DustSet> mDustSet = new ArrayList<DustSet>();
-        return mDustSet;
+    public ArrayList<Dust> requestDustData(String[] mSidoCity) {
+        ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
+        if(checkNeedToUpdate(dustArrayList)) {
+            //update 필요
+            new DustDBService.JsonLoadingTask().execute();
+        }
+        return dustArrayList;
+    }
+
+    boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
+        boolean needToUpdate = false;
+
+        if(dustArrayList.size() != 24) {
+            Log.d(TAG,"Update Case - dustArrayList.size() != 24");
+            needToUpdate = true;
+        } else if(dustArrayList.get(0).getmPM10() == 0 && dustArrayList.get(0).getmPM25() == 0){
+            Log.d(TAG,"Update Case - data is 0");
+            needToUpdate = true;
+        } else  {
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            try {
+                Date dustDataTime = new Date(dustArrayList.get(0).getYear(),
+                        dustArrayList.get(0).getMonth(),
+                        dustArrayList.get(0).getDay(),
+                        dustArrayList.get(0).getHour(),
+                        dustArrayList.get(0).getMinute());
+                Date curDateTime = df.parse(df.format(new Date()));
+
+                long diff = curDateTime.getTime() - dustDataTime.getTime();
+
+                if (diff > 90 * 60 * 1000) {
+                    //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
+                    Log.d(TAG,"Update Case - new data available. Need To Update");
+                    needToUpdate = true;
+                } else {
+                    Log.d(TAG,"Update Case - Data is up to date");
+                    needToUpdate = false;
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        return needToUpdate;
+    }
+
+    /** method for clients */
+    public ArrayList<Dust> getDustData(String city) {
+        ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
+        dustArrayList = mDBHelperDust.getDustList(city);
+        return dustArrayList;
     }
 
     // Handler 클래스
@@ -135,8 +193,15 @@ public class DustDBService extends Service {
             ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
             dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
 
-            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
-            notificationUtil.notify(0);
+            if(dustArrayList.size() == 24) {
+                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
+                notificationUtil.notify(0);
+
+                //서비스에서 액티비티 함수 호출은..
+                if(mCallback !=null) {
+                    mCallback.OnCurrentDust(dustArrayList);
+                }
+            }
         }
     }
 
@@ -162,26 +227,13 @@ public class DustDBService extends Service {
             }
 
             ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-            Date dustDataTime = null;
+
 
             for(int i=0; i < json.length() - 1; i++) {
-                try {
-                    dustDataTime = df.parse(json.getJSONObject(i).getString("dataTime"));
-                }  catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
                 Dust dust = new Dust(
                         json.getJSONObject(i).getString("sidoName"),
                         json.getJSONObject(i).getString("cityName"),
-
-                        dustDataTime.getYear(),
-                        dustDataTime.getMonth(),
-                        dustDataTime.getDay(),
-                        dustDataTime.getHours(),
-                        dustDataTime.getMinutes(),
-
+                        json.getJSONObject(i).getString("dataTime"),
                         (float)json.getJSONObject(i).getDouble("coValue"),
                         (float)json.getJSONObject(i).getDouble("no2Value"),
                         (float)json.getJSONObject(i).getDouble("o3Value"),
@@ -192,17 +244,9 @@ public class DustDBService extends Service {
                 dustArrayList.add(dust);
             }
 
-            //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요
+            //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
             mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
             mDBHelperDust.insertDustList(dustArrayList);
-
-            //JSONObject sObject = new JSONObject();
-            //sObject.put("address0", myDustSet.getmCurLocation()[0]);
-            //sObject.put("address1", myDustSet.getmCurLocation()[1]);
-            //sObject.put("address2", myDustSet.getmCurLocation()[2]);
-            //json.put(sObject);
-            //savePreferences(dust_data_preference, json.toString());
-
         } catch (Exception e) {
             e.printStackTrace();
             // TODO: handle exception
@@ -256,27 +300,4 @@ public class DustDBService extends Service {
         }
         return page.toString();
     }
-
-
-
-    /*
-    //콜백 인터페이스 선언
-    public interface ICallback {
-        public void recvData(); //액티비티에서 선언한 콜백 함수.
-    }
-
-    private ICallback mCallback;
-
-    public void registerCallback(ICallback cb) {
-        mCallback = cb;
-    }
-
-    //액티비티에서 서비스 함수를 호출하기 위한 함수 생성
-    public void myServiceFunc(){
-        //서비스에서 처리할 내용
-    }
-
-    //서비스에서 액티비티 함수 호출은..
-    mCallback.recvData();
-    */
 }

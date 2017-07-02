@@ -1,5 +1,11 @@
 package techjun.com.dustinfo.model;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * Created by leebongjun on 2017. 7. 1..
  */
@@ -8,6 +14,7 @@ public class Dust {
     private int index;
     private String mSido;
     private String mCity;
+    private String mDateTime;
     private int year;
     private int month;
     private int day;
@@ -22,26 +29,39 @@ public class Dust {
 
     public Dust() {}
 
-    public Dust(String mSido, String mCity, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
+    public Dust(String mSido, String mCity, String mDateTime, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
         this.mSido = mSido;
         this.mCity = mCity;
-        this.year = year;
-        this.month = month;
-        this.day = day;
-        this.hour = hour;
-        this.minute = minute;
         this.mCO = mCO;
         this.mNO2 = mNO2;
         this.mO3 = mO3;
         this.mPM10 = mPM10;
         this.mPM25 = mPM25;
         this.mSO2 = mSO2;
+        this.mDateTime = mDateTime;
+
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        Date dustDataTime = null;
+        Calendar calendar = Calendar.getInstance();
+
+        try {
+            dustDataTime = df.parse(mDateTime);
+        }  catch (ParseException e) {
+            e.printStackTrace();
+        }
+        calendar.setTime(dustDataTime);
+        this.year = calendar.get(Calendar.YEAR);
+        this.month = calendar.get(Calendar.MONTH) + 1;
+        this.day =  calendar.get(Calendar.DAY_OF_MONTH);
+        this.hour =  calendar.get(Calendar.HOUR_OF_DAY);
+        this.minute = calendar.get(Calendar.MINUTE);
     }
 
-    public Dust(int index, String mSido, String mCity, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
+    public Dust(int index, String mSido, String mCity, String mDateTime, int year, int month, int day, int hour, int minute, float mCO, float mNO2, float mO3, int mPM10, int mPM25, float mSO2) {
         this.index = index;
         this.mSido = mSido;
         this.mCity = mCity;
+        this.mDateTime = mDateTime;
         this.year = year;
         this.month = month;
         this.day = day;
@@ -59,111 +79,59 @@ public class Dust {
         return index;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
+    public String getmSido() {
+        return mSido;
     }
 
     public String getmCity() {
         return mCity;
     }
 
-    public void setmCity(String mCity) {
-        this.mCity = mCity;
-    }
-
-    public String getmSido() {
-        return mSido;
-    }
-
-    public void setmSido(String mSido) {
-        this.mSido = mSido;
+    public String getmDateTime() {
+        return mDateTime;
     }
 
     public int getYear() {
         return year;
     }
 
-    public void setYear(int year) {
-        this.year = year;
-    }
-
     public int getMonth() {
         return month;
-    }
-
-    public void setMonth(int month) {
-        this.month = month;
     }
 
     public int getDay() {
         return day;
     }
 
-    public void setDay(int day) {
-        this.day = day;
-    }
-
     public int getHour() {
         return hour;
-    }
-
-    public void setHour(int hour) {
-        this.hour = hour;
     }
 
     public int getMinute() {
         return minute;
     }
 
-    public void setMinute(int minute) {
-        this.minute = minute;
-    }
-
-    public int getmPM10() {
-        return mPM10;
-    }
-
-    public void setmPM10(int mPM10) {
-        this.mPM10 = mPM10;
-    }
-
-    public int getmPM25() {
-        return mPM25;
-    }
-
-    public void setmPM25(int mPM25) {
-        this.mPM25 = mPM25;
-    }
-
     public float getmCO() {
         return mCO;
-    }
-
-    public void setmCO(float mCO) {
-        this.mCO = mCO;
     }
 
     public float getmNO2() {
         return mNO2;
     }
 
-    public void setmNO2(float mNO2) {
-        this.mNO2 = mNO2;
-    }
-
     public float getmO3() {
         return mO3;
     }
 
-    public void setmO3(float mO3) {
-        this.mO3 = mO3;
+    public int getmPM10() {
+        return mPM10;
+    }
+
+    public int getmPM25() {
+        return mPM25;
     }
 
     public float getmSO2() {
         return mSO2;
-    }
-
-    public void setmSO2(float mSO2) {
-        this.mSO2 = mSO2;
     }
 }

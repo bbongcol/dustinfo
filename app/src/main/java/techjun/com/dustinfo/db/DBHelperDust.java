@@ -33,6 +33,7 @@ public class DBHelperDust extends SQLiteOpenHelper {
                 "_id Integer PRIMARY KEY AUTOINCREMENT, " +
                 "sido TEXT, " +
                 "city TEXT, " +
+                "datetime TEXT, " +
                 "year Integer, " +
                 "month Integer, " +
                 "day Integer, " +
@@ -58,6 +59,7 @@ public class DBHelperDust extends SQLiteOpenHelper {
             ContentValues values = new ContentValues();
             values.put("sido", dustArryList.get(i).getmSido());
             values.put("city", dustArryList.get(i).getmCity());
+            values.put("datetime", dustArryList.get(i).getmDateTime());
             values.put("year", dustArryList.get(i).getYear());
             values.put("month", dustArryList.get(i).getMonth());
             values.put("day", dustArryList.get(i).getDay());
@@ -81,6 +83,7 @@ public class DBHelperDust extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put("year", dust.getYear());
         values.put("month", dust.getMonth());
+        values.put("datetime", dust.getmDateTime());
         values.put("day", dust.getDay());
         //values.put("hour", dust.getHour());  //do not need to update
         values.put("minute", dust.getMinute());
@@ -113,6 +116,7 @@ public class DBHelperDust extends SQLiteOpenHelper {
                 Dust dust = new Dust(cursor.getInt(cursor.getColumnIndex("_id")), //id
                         cursor.getString(cursor.getColumnIndex("sido")), //sido
                         cursor.getString(cursor.getColumnIndex("city")), //city
+                        cursor.getString(cursor.getColumnIndex("datetime")), //datetime
                         cursor.getInt(cursor.getColumnIndex("year")), //year
                         cursor.getInt(cursor.getColumnIndex("month")), //month
                         cursor.getInt(cursor.getColumnIndex("day")), //day
