@@ -36,14 +36,15 @@ public class DustDBService extends Service {
         void OnCurrentDust(ArrayList<Dust> curDustArrayList);
     }
 
-    private final int POOLING_FREQUENCY = 1000 * 60 * 1;//30min
-    private final int START_POOLING = 1001;
-    private final int STOP_POOLING = 1002;
-    private final int DO_POOLING = 1003;
-    private final String TAG = "DustDBService";
+    public final int POOLING_FREQUENCY = 1000 * 30;//30sec
+    public final static int START_POOLING = 1001;
+    public final static int STOP_POOLING = 1002;
+    public final static int DO_POOLING = 1003;
+    public final String TAG = "DustDBService";
 
-    private final IBinder mBinder = new LocalBinder();
-    private final SendMassgeHandler mMainHandler = new SendMassgeHandler();
+    private IBinder mBinder = new LocalBinder();
+    private SendMassgeHandler mMainHandler;
+    private ServiceThread mServiceThread;
     private NotificationUtil notificationUtil;
     private DBHelperDust mDBHelperDust;
     private ICurrentDustCallback mCallback;
@@ -61,23 +62,35 @@ public class DustDBService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        //Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate");
         notificationUtil = NotificationUtil.getInstance(this);
         mDBHelperDust = new DBHelperDust(this);
+        mMainHandler = new SendMassgeHandler();
+        mServiceThread = new ServiceThread(mMainHandler);
+        mServiceThread.start();
+
+        ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+
+        if(dustArrayList.size() == 24) {
+            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
+            notificationUtil.notify(0);
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //Log.d(TAG, "onStartCommand");
-        mMainHandler.removeMessages(DO_POOLING);
-        mMainHandler.sendEmptyMessage(START_POOLING);
+        Log.d(TAG, "onStartCommand");
+        //mMainHandler.removeMessages(DO_POOLING);
+        //mMainHandler.sendEmptyMessage(START_POOLING);
         return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        //Log.d(TAG, "onDestroy");
+        mServiceThread.stopForever();
+        mServiceThread = null;
+        Log.d(TAG, "onDestroy");
     }
 
     @Override
@@ -94,7 +107,7 @@ public class DustDBService extends Service {
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
         if(checkNeedToUpdate(dustArrayList)) {
             //update 필요
-            new DustDBService.JsonLoadingTask().execute();
+            new DustDBService.JsonLoadingTask().execute(mSidoCity);
         }
         //DB의 데이터를 일단 바로 넘긴다
         return dustArrayList;
@@ -128,21 +141,15 @@ public class DustDBService extends Service {
                     Log.d(TAG,"Update Case - new data available. Need To Update");
                     needToUpdate = true;
                 } else {
-                    Log.d(TAG,"Update Case - Data is up to date. ("+dustArrayList.get(0).getmDateTime()+")"+" Dela:"+diff/60000+"min");
+                    Log.d(TAG,"Update Case - Data is up to date. ("+dustArrayList.get(0).getmDateTime()+")"+" Dela : "+diff/60000+" min");
                     needToUpdate = false;
+                    mMainHandler.removeMessages(DO_POOLING);
                 }
             } catch (ParseException e) {
                 e.printStackTrace();
             }
         }
         return needToUpdate;
-    }
-
-    /** method for clients */
-    public ArrayList<Dust> getDustData(String city) {
-        ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
-        dustArrayList = mDBHelperDust.getDustList(city);
-        return dustArrayList;
     }
 
     // Handler 클래스
@@ -157,24 +164,25 @@ public class DustDBService extends Service {
                     sendEmptyMessage(DO_POOLING);
                     break;
                 case STOP_POOLING:
-                    //Log.d(TAG, "handleMessage STOP_POOLING");
+                    Log.d(TAG, "handleMessage STOP_POOLING");
                     removeMessages(DO_POOLING);
                     break;
                 case DO_POOLING:
                     //DB업데이트
                     Log.d(TAG, "handleMessage DO_POOLING");
-                    new DustDBService.JsonLoadingTask().execute();
                     sendEmptyMessageDelayed(DO_POOLING, POOLING_FREQUENCY);
+                    requestDustData(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity());
+                    //new DustDBService.JsonLoadingTask().execute();
                     break;
             }
         }
     };
 
-    private class JsonLoadingTask extends AsyncTask<String, Void, Integer> {
+    private class JsonLoadingTask extends AsyncTask<String[], Void, Integer> {
         @Override
-        protected Integer doInBackground(String... strs) {
+        protected Integer doInBackground(String[]... strs) {
             //TODO 위치가 추가되면 여기서 for 문으로 추가하기
-            getDustInfoJson(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity());
+            getDustInfoJson(strs[0]);
             return 0;
         }
 
@@ -193,8 +201,7 @@ public class DustDBService extends Service {
             // nowDate 변수에 값을 저장한다.
             String formatDate = sdfNow.format(date);
 
-            ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
-            dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+            ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
 
             if(dustArrayList.size() == 24) {
                 notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());

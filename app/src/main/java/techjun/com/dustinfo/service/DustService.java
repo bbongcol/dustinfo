@@ -157,8 +157,7 @@ public class DustService {
             //JSON객체를 JSONArray로 변경
             JSONArray json = new JSONArray(jsonPage);
 
-            if(json.getJSONObject(0).has("msg") &&
-                    json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
+            if(json.length() == 0 || (json.getJSONObject(0).has("msg") && json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST"))) {
                 jsonPage = getStringFromUrl(getDustUrl());
                 json = new JSONArray(jsonPage);
             }
