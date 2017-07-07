@@ -96,6 +96,7 @@ public class DustDBService extends Service {
             //update 필요
             new DustDBService.JsonLoadingTask().execute();
         }
+        //DB의 데이터를 일단 바로 넘긴다
         return dustArrayList;
     }
 
@@ -111,21 +112,23 @@ public class DustDBService extends Service {
         } else  {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             try {
-                Date dustDataTime = new Date(dustArrayList.get(0).getYear(),
-                        dustArrayList.get(0).getMonth(),
+                Date dustDataTime = new Date(dustArrayList.get(0).getYear() - 1900,
+                        dustArrayList.get(0).getMonth() - 1 ,
                         dustArrayList.get(0).getDay(),
                         dustArrayList.get(0).getHour(),
                         dustArrayList.get(0).getMinute());
                 Date curDateTime = df.parse(df.format(new Date()));
 
-                long diff = curDateTime.getTime() - dustDataTime.getTime();
+                long dustdate = dustDataTime.getTime();
+                long current = curDateTime.getTime();
+                long diff = current - dustdate;
 
                 if (diff > 90 * 60 * 1000) {
                     //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
                     Log.d(TAG,"Update Case - new data available. Need To Update");
                     needToUpdate = true;
                 } else {
-                    Log.d(TAG,"Update Case - Data is up to date");
+                    Log.d(TAG,"Update Case - Data is up to date. ("+dustArrayList.get(0).getmDateTime()+")"+" Dela:"+diff/60000+"min");
                     needToUpdate = false;
                 }
             } catch (ParseException e) {
@@ -202,6 +205,7 @@ public class DustDBService extends Service {
                     mCallback.OnCurrentDust(dustArrayList);
                 }
             }
+            Log.d(TAG, "Notification updated");
         }
     }
 
@@ -245,8 +249,11 @@ public class DustDBService extends Service {
             }
 
             //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
-            mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
-            mDBHelperDust.insertDustList(dustArrayList);
+            if(checkNeedToUpdate(mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]))) {
+                Log.d(TAG, "DB updated");
+                mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+                mDBHelperDust.insertDustList(dustArrayList);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             // TODO: handle exception

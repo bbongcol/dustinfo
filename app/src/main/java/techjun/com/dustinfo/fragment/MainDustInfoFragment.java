@@ -129,8 +129,8 @@ public class MainDustInfoFragment extends Fragment {
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
             DustDBService.LocalBinder binder = (DustDBService.LocalBinder) service;
-            mDustDBService = binder.getService();
             mBound = true;
+            mDustDBService = binder.getService();
             mDustDBService.registerCallback(new DustDBService.ICurrentDustCallback() {
                 @Override
                 public void OnCurrentDust(ArrayList<Dust> curDustArrayList) {
