@@ -71,8 +71,8 @@ public class DustDBService extends Service {
 
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
 
-        if(dustArrayList.size() == 24) {
-            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
+        if (dustArrayList.size() == 24) {
+            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
             notificationUtil.notify(0);
         }
     }
@@ -102,10 +102,12 @@ public class DustDBService extends Service {
         mCallback = cb;
     }
 
-    /** method for clients */
+    /**
+     * method for clients
+     */
     public ArrayList<Dust> requestDustData(String[] mSidoCity) {
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
-        if(checkNeedToUpdate(dustArrayList)) {
+        if (checkNeedToUpdate(dustArrayList)) {
             //update 필요
             new DustDBService.JsonLoadingTask().execute(mSidoCity);
         }
@@ -116,17 +118,19 @@ public class DustDBService extends Service {
     boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
         boolean needToUpdate = false;
 
-        if(dustArrayList.size() != 24) {
-            Log.d(TAG,"Update Case - dustArrayList.size() != 24");
+        Log.d(TAG, "checkNeedToUpdate dustArrayList.size() : " + dustArrayList.size());
+
+        if (dustArrayList.size() == 0) {
+            Log.d(TAG, "Update Case - dustArrayList.size() == 0");
             needToUpdate = true;
-        } else if(dustArrayList.get(0).getmPM10() == 0 && dustArrayList.get(0).getmPM25() == 0){
-            Log.d(TAG,"Update Case - data is 0");
+        } else if (dustArrayList.get(0).getmPM10() == 0 && dustArrayList.get(0).getmPM25() == 0) {
+            Log.d(TAG, "Update Case - data is 0");
             needToUpdate = true;
-        } else  {
+        } else {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             try {
                 Date dustDataTime = new Date(dustArrayList.get(0).getYear() - 1900,
-                        dustArrayList.get(0).getMonth() - 1 ,
+                        dustArrayList.get(0).getMonth() - 1,
                         dustArrayList.get(0).getDay(),
                         dustArrayList.get(0).getHour(),
                         dustArrayList.get(0).getMinute());
@@ -138,10 +142,10 @@ public class DustDBService extends Service {
 
                 if (diff > 90 * 60 * 1000) {
                     //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
-                    Log.d(TAG,"Update Case - new data available. Need To Update");
+                    Log.d(TAG, "Update Case - new data available. Need To Update");
                     needToUpdate = true;
                 } else {
-                    Log.d(TAG,"Update Case - Data is up to date. ("+dustArrayList.get(0).getmDateTime()+")"+" Dela : "+diff/60000+" min");
+                    Log.d(TAG, "Update Case - Data is up to date. (" + dustArrayList.get(0).getmDateTime() + ")" + " Dela : " + diff / 60000 + " min");
                     needToUpdate = false;
                     mMainHandler.removeMessages(DO_POOLING);
                 }
@@ -152,13 +156,58 @@ public class DustDBService extends Service {
         return needToUpdate;
     }
 
+    boolean checkNeedToUpdateDB(ArrayList<Dust> curDBDustArrayList, ArrayList<Dust> newDustInfo) {
+        boolean needToUpdate = false;
+
+        Log.d(TAG, "checkNeedToUpdateDB curDBDustArrayList.size() : " + curDBDustArrayList.size());
+
+        if (curDBDustArrayList.size() == 0) {
+            Log.d(TAG, "Update Case - curDBDustArrayList.size() == 0");
+            needToUpdate = true;
+        } else if (curDBDustArrayList.get(0).getmPM10() == 0 && curDBDustArrayList.get(0).getmPM25() == 0) {
+            Log.d(TAG, "Update Case - data is 0");
+            needToUpdate = true;
+        } else {
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
+            Date dustDataTime = new Date(curDBDustArrayList.get(0).getYear() - 1900,
+                    curDBDustArrayList.get(0).getMonth() - 1,
+                    curDBDustArrayList.get(0).getDay(),
+                    curDBDustArrayList.get(0).getHour(),
+                    curDBDustArrayList.get(0).getMinute());
+
+            Date newDustInfoDateTime = new Date(newDustInfo.get(0).getYear() - 1900,
+                    newDustInfo.get(0).getMonth() - 1,
+                    newDustInfo.get(0).getDay(),
+                    newDustInfo.get(0).getHour(),
+                    newDustInfo.get(0).getMinute());
+
+            long dustdate = dustDataTime.getTime();
+            long current = newDustInfoDateTime.getTime();
+            long diff = current - dustdate;
+
+            if (diff > 90 * 60 * 1000) {
+                //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
+                Log.d(TAG, "Update Case - new data available. Need To Update");
+                needToUpdate = true;
+            } else {
+                Log.d(TAG, "Update Case - Data is up to date. newDustInfo : (" + newDustInfo.get(0).getmDateTime() + ")" + " Dela : " + diff / 60000 + " min");
+                needToUpdate = false;
+                mMainHandler.removeMessages(DO_POOLING);
+            }
+
+        }
+        return needToUpdate;
+    }
+
+
     // Handler 클래스
     class SendMassgeHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             //Log.d(TAG, "handleMessage");
             super.handleMessage(msg);
-            switch(msg.what){
+            switch (msg.what) {
                 case START_POOLING:
                     Log.d(TAG, "handleMessage START_POOLING");
                     sendEmptyMessage(DO_POOLING);
@@ -170,13 +219,15 @@ public class DustDBService extends Service {
                 case DO_POOLING:
                     //DB업데이트
                     Log.d(TAG, "handleMessage DO_POOLING");
-                    sendEmptyMessageDelayed(DO_POOLING, POOLING_FREQUENCY);
+                    //sendEmptyMessageDelayed(DO_POOLING, POOLING_FREQUENCY);
                     requestDustData(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity());
                     //new DustDBService.JsonLoadingTask().execute();
                     break;
             }
         }
-    };
+    }
+
+    ;
 
     private class JsonLoadingTask extends AsyncTask<String[], Void, Integer> {
         @Override
@@ -203,16 +254,17 @@ public class DustDBService extends Service {
 
             ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
 
-            if(dustArrayList.size() == 24) {
-                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: "+ dustArrayList.get(0).getmPM10()+"  초미세먼지: "+ dustArrayList.get(0).getmPM25());
+            Log.d(TAG, "Bedore Notification updated dustArrayList.size():" + dustArrayList.size());
+            if (dustArrayList.size() == 24) {
+                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
                 notificationUtil.notify(0);
 
                 //서비스에서 액티비티 함수 호출은..
-                if(mCallback !=null) {
+                if (mCallback != null) {
                     mCallback.OnCurrentDust(dustArrayList);
                 }
+                Log.d(TAG, "Notification updated");
             }
-            Log.d(TAG, "Notification updated");
         }
     }
 
@@ -222,6 +274,7 @@ public class DustDBService extends Service {
      */
     private int getDustInfoJson(String[] sidocity) {
         try {
+            Log.d(TAG, "getDustInfoJson");
             //서버 통신 확인
             //String jsonTmp = getStringFromUrl("https://lit-inlet-76867.herokuapp.com");
 
@@ -229,37 +282,39 @@ public class DustDBService extends Service {
             String jsonPage = getStringFromUrl(getDustUrl(sidocity));
 
             //JSON객체를 JSONArray로 변경
-            JSONArray json = new JSONArray(jsonPage);
+            if (jsonPage != null) {
+                JSONArray json = new JSONArray(jsonPage);
 
-            if(json.getJSONObject(0).has("msg") &&
-                    json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
-                jsonPage = getStringFromUrl(getDustUrl(sidocity));
-                json = new JSONArray(jsonPage);
-            }
+                if (json.getJSONObject(0).has("msg") &&
+                        json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
+                    jsonPage = getStringFromUrl(getDustUrl(sidocity));
+                    json = new JSONArray(jsonPage);
+                }
 
-            ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
+                ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
 
+                for (int i = 0; i < json.length() - 1; i++) {
+                    Dust dust = new Dust(
+                            json.getJSONObject(i).getString("sidoName"),
+                            json.getJSONObject(i).getString("cityName"),
+                            json.getJSONObject(i).getString("dataTime"),
+                            (float) json.getJSONObject(i).getDouble("coValue"),
+                            (float) json.getJSONObject(i).getDouble("no2Value"),
+                            (float) json.getJSONObject(i).getDouble("o3Value"),
+                            json.getJSONObject(i).getInt("pm10Value"),
+                            json.getJSONObject(i).getInt("pm25Value"),
+                            (float) json.getJSONObject(i).getDouble("so2Value")
+                    );
+                    dustArrayList.add(dust);
+                }
 
-            for(int i=0; i < json.length() - 1; i++) {
-                Dust dust = new Dust(
-                        json.getJSONObject(i).getString("sidoName"),
-                        json.getJSONObject(i).getString("cityName"),
-                        json.getJSONObject(i).getString("dataTime"),
-                        (float)json.getJSONObject(i).getDouble("coValue"),
-                        (float)json.getJSONObject(i).getDouble("no2Value"),
-                        (float)json.getJSONObject(i).getDouble("o3Value"),
-                        json.getJSONObject(i).getInt("pm10Value"),
-                        json.getJSONObject(i).getInt("pm25Value"),
-                        (float)json.getJSONObject(i).getDouble("so2Value")
-                );
-                dustArrayList.add(dust);
-            }
-
-            //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
-            if(checkNeedToUpdate(mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]))) {
-                Log.d(TAG, "DB updated");
-                mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
-                mDBHelperDust.insertDustList(dustArrayList);
+                Log.d(TAG, "Get dustArrayList OK!. Try update db : " + dustArrayList.get(0).getmDateTime());
+                //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
+                if (checkNeedToUpdateDB(mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]), dustArrayList)) {
+                    Log.d(TAG, "DB updated");
+                    mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+                    mDBHelperDust.insertDustList(dustArrayList);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -278,32 +333,33 @@ public class DustDBService extends Service {
         return String.valueOf(sb);
     }
 
-    // getStringFromUrl : 주어진 URL의 문서의 내용을 문자열로 반환
-    private String getStringFromUrl(String pUrl){
 
-        BufferedReader bufreader=null;
+    // getStringFromUrl : 주어진 URL의 문서의 내용을 문자열로 반환
+    private String getStringFromUrl(String pUrl) {
+        Log.d(TAG, "getStringFromUrl pUrl:" + pUrl);
+        BufferedReader bufreader = null;
         HttpURLConnection urlConnection = null;
 
-        StringBuffer page=new StringBuffer(); //읽어온 데이터를 저장할 StringBuffer객체 생성
+        StringBuffer page = new StringBuffer(); //읽어온 데이터를 저장할 StringBuffer객체 생성
 
         try {
-
-            URL url= new URL(pUrl);
+            URL url = new URL(pUrl);
             urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setConnectTimeout(15000);
+            urlConnection.setReadTimeout(15000);
             InputStream contentStream = urlConnection.getInputStream();
-
-            bufreader = new BufferedReader(new InputStreamReader(contentStream,"UTF-8"));
+            bufreader = new BufferedReader(new InputStreamReader(contentStream, "UTF-8"));
             String line = null;
 
             //버퍼의 웹문서 소스를 줄단위로 읽어(line), Page에 저장함
-            while((line = bufreader.readLine())!=null){
+            while ((line = bufreader.readLine()) != null) {
                 //Log.d("line:",line);
                 page.append(line);
             }
 
         } catch (IOException e) {
             e.printStackTrace();
-        }finally{
+        } finally {
             //자원해제
             try {
                 bufreader.close();

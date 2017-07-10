@@ -13,7 +13,7 @@ import java.util.Date;
 public class ServiceThread extends Thread{
     Handler handler;
     boolean isRun = true;
-    boolean TimeAdjustment = true;
+    boolean TimeAdjustment = false;
     private final String TAG = "ServiceThread";
 
     public ServiceThread(Handler handler){
@@ -42,7 +42,7 @@ public class ServiceThread extends Thread{
                         Thread.sleep((30 - curDateTime.getMinutes()) * 60 * 1000 );
                     }
                 } else {
-                    Thread.sleep(90 * 60 * 1000); //1분에 한번식 깨어난다
+                    Thread.sleep(1 * 60 * 1000); //1분에 한번식 깨어난다
                 }
             } catch (Exception e) {}
             handler.sendEmptyMessage(DustDBService.START_POOLING);

@@ -134,6 +134,7 @@ public class MainDustInfoFragment extends Fragment {
             mDustDBService.registerCallback(new DustDBService.ICurrentDustCallback() {
                 @Override
                 public void OnCurrentDust(ArrayList<Dust> curDustArrayList) {
+                    Log.d(TAG,"registerCallback");
                     textPM10Data.setText(""+ curDustArrayList.get(0).getmPM10());
                     textPM25Data.setText(""+ curDustArrayList.get(0).getmPM25());
                     textLastTime.setText(""+ curDustArrayList.get(0).getmDateTime());
