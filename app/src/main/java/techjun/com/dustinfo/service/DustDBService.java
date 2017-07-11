@@ -27,7 +27,7 @@ import java.util.Date;
 import techjun.com.dustinfo.db.DBHelperDust;
 import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.model.DustSet;
-import techjun.com.dustinfo.utils.LocationUtil;
+//import techjun.com.dustinfo.utils.LocationUtil;
 import techjun.com.dustinfo.utils.NotificationUtil;
 
 public class DustDBService extends Service {
@@ -49,6 +49,8 @@ public class DustDBService extends Service {
     private DBHelperDust mDBHelperDust;
     private ICurrentDustCallback mCallback;
 
+    private String[] mSidoCity;
+
     public DustDBService() {
 
     }
@@ -68,13 +70,6 @@ public class DustDBService extends Service {
         mMainHandler = new SendMassgeHandler();
         mServiceThread = new ServiceThread(mMainHandler);
         mServiceThread.start();
-
-        ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
-
-        if (dustArrayList.size() == 24) {
-            notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
-            notificationUtil.notify(0);
-        }
     }
 
     @Override
@@ -105,7 +100,9 @@ public class DustDBService extends Service {
     /**
      * method for clients
      */
-    public ArrayList<Dust> requestDustData(String[] mSidoCity) {
+    public ArrayList<Dust> requestDustData(String[] requestSidoCity) {
+        Log.d(TAG, "requestDustData requestSidoCity : " + requestSidoCity[1]);
+        mSidoCity = requestSidoCity;
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
         if (checkNeedToUpdate(dustArrayList)) {
             //update 필요
@@ -117,9 +114,7 @@ public class DustDBService extends Service {
 
     boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
         boolean needToUpdate = false;
-
         Log.d(TAG, "checkNeedToUpdate dustArrayList.size() : " + dustArrayList.size());
-
         if (dustArrayList.size() == 0) {
             Log.d(TAG, "Update Case - dustArrayList.size() == 0");
             needToUpdate = true;
@@ -162,10 +157,10 @@ public class DustDBService extends Service {
         Log.d(TAG, "checkNeedToUpdateDB curDBDustArrayList.size() : " + curDBDustArrayList.size());
 
         if (curDBDustArrayList.size() == 0) {
-            Log.d(TAG, "Update Case - curDBDustArrayList.size() == 0");
+            Log.d(TAG, "checkNeedToUpdateDB Update Case - curDBDustArrayList.size() == 0");
             needToUpdate = true;
         } else if (curDBDustArrayList.get(0).getmPM10() == 0 && curDBDustArrayList.get(0).getmPM25() == 0) {
-            Log.d(TAG, "Update Case - data is 0");
+            Log.d(TAG, "checkNeedToUpdateDB Update Case - data is 0");
             needToUpdate = true;
         } else {
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
@@ -186,12 +181,12 @@ public class DustDBService extends Service {
             long current = newDustInfoDateTime.getTime();
             long diff = current - dustdate;
 
-            if (diff > 90 * 60 * 1000) {
-                //지난번에 얻어온 값의 시간에서 1시간 30분 이상 경과 했을 경우에만 값을 다시 얻어온다.
-                Log.d(TAG, "Update Case - new data available. Need To Update");
+            if (diff >= 60 * 60 * 1000) {
+                //지난번에 얻어온 값의 시간에서 1시간 이상 경과 했을 경우에만 값을 다시 얻어온다.
+                Log.d(TAG, "checkNeedToUpdateDB Update Case - new data available. Need To Update");
                 needToUpdate = true;
             } else {
-                Log.d(TAG, "Update Case - Data is up to date. newDustInfo : (" + newDustInfo.get(0).getmDateTime() + ")" + " Dela : " + diff / 60000 + " min");
+                Log.d(TAG, "checkNeedToUpdateDB Update Case - Data is up to date. newDustInfo : (" + newDustInfo.get(0).getmDateTime() + ")" + " Dela : " + diff / 60000 + " min");
                 needToUpdate = false;
                 mMainHandler.removeMessages(DO_POOLING);
             }
@@ -220,7 +215,11 @@ public class DustDBService extends Service {
                     //DB업데이트
                     Log.d(TAG, "handleMessage DO_POOLING");
                     //sendEmptyMessageDelayed(DO_POOLING, POOLING_FREQUENCY);
-                    requestDustData(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity());
+                    ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
+                    if (checkNeedToUpdate(dustArrayList)) {
+                        //update 필요
+                        new DustDBService.JsonLoadingTask().execute(mSidoCity);
+                    }
                     //new DustDBService.JsonLoadingTask().execute();
                     break;
             }
@@ -252,9 +251,9 @@ public class DustDBService extends Service {
             // nowDate 변수에 값을 저장한다.
             String formatDate = sdfNow.format(date);
 
-            ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+            ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
 
-            Log.d(TAG, "Bedore Notification updated dustArrayList.size():" + dustArrayList.size());
+            Log.d(TAG, "Before Notification updated dustArrayList.size():" + dustArrayList.size());
             if (dustArrayList.size() == 24) {
                 notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
                 notificationUtil.notify(0);
@@ -310,9 +309,9 @@ public class DustDBService extends Service {
 
                 Log.d(TAG, "Get dustArrayList OK!. Try update db : " + dustArrayList.get(0).getmDateTime());
                 //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
-                if (checkNeedToUpdateDB(mDBHelperDust.getDustList(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]), dustArrayList)) {
+                if (checkNeedToUpdateDB(mDBHelperDust.getDustList(mSidoCity[1]), dustArrayList)) {
                     Log.d(TAG, "DB updated");
-                    mDBHelperDust.delete(LocationUtil.getInstance(getApplicationContext()).getCurrentSidoCity()[1]);
+                    mDBHelperDust.delete(mSidoCity[1]);
                     mDBHelperDust.insertDustList(dustArrayList);
                 }
             }
