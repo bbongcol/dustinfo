@@ -100,11 +100,11 @@ public class DustDBService extends Service {
     /**
      * method for clients
      */
-    public ArrayList<Dust> requestDustData(String[] requestSidoCity) {
+    public ArrayList<Dust> requestDustData(String[] requestSidoCity, boolean forceUpdate) {
         Log.d(TAG, "requestDustData requestSidoCity : " + requestSidoCity[1]);
         mSidoCity = requestSidoCity;
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
-        if (checkNeedToUpdate(dustArrayList)) {
+        if (checkNeedToUpdate(dustArrayList) || forceUpdate) {
             //update 필요
             new DustDBService.JsonLoadingTask().execute(mSidoCity);
         }
@@ -117,6 +117,9 @@ public class DustDBService extends Service {
         Log.d(TAG, "checkNeedToUpdate dustArrayList.size() : " + dustArrayList.size());
         if (dustArrayList.size() == 0) {
             Log.d(TAG, "Update Case - dustArrayList.size() == 0");
+            needToUpdate = true;
+        } else if (dustArrayList.size() < 24) {
+            Log.d(TAG, "Update Case - ustArrayList.size() < 24");
             needToUpdate = true;
         } else if (dustArrayList.get(0).getmPM10() == 0 && dustArrayList.get(0).getmPM25() == 0) {
             Log.d(TAG, "Update Case - data is 0");
@@ -158,6 +161,9 @@ public class DustDBService extends Service {
 
         if (curDBDustArrayList.size() == 0) {
             Log.d(TAG, "checkNeedToUpdateDB Update Case - curDBDustArrayList.size() == 0");
+            needToUpdate = true;
+        }  else if (curDBDustArrayList.size() < 24) {
+            Log.d(TAG, "Update Case - ustArrayList.size() < 24");
             needToUpdate = true;
         } else if (curDBDustArrayList.get(0).getmPM10() == 0 && curDBDustArrayList.get(0).getmPM25() == 0) {
             Log.d(TAG, "checkNeedToUpdateDB Update Case - data is 0");
@@ -292,7 +298,12 @@ public class DustDBService extends Service {
 
                 ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
 
-                for (int i = 0; i < json.length() - 1; i++) {
+                int jsonlength = json.length();
+                if(jsonlength == 25 ) {
+                    jsonlength = jsonlength - 1;
+                }
+
+                for (int i = 0; i < jsonlength; i++) {
                     Dust dust = new Dust(
                             json.getJSONObject(i).getString("sidoName"),
                             json.getJSONObject(i).getString("cityName"),
@@ -307,7 +318,7 @@ public class DustDBService extends Service {
                     dustArrayList.add(dust);
                 }
 
-                Log.d(TAG, "Get dustArrayList OK!. Try update db : " + dustArrayList.get(0).getmDateTime());
+                Log.d(TAG, "Get dustArrayList OK!. Try update db : " + dustArrayList.get(0).getmDateTime() + " dustArrayList.size() : "+dustArrayList.size());
                 //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
                 if (checkNeedToUpdateDB(mDBHelperDust.getDustList(mSidoCity[1]), dustArrayList)) {
                     Log.d(TAG, "DB updated");

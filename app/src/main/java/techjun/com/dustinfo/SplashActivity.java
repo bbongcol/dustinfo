@@ -4,8 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-import techjun.com.dustinfo.service.DustService;
-
 /**
  * Created by leebongjun on 2017. 6. 12..
  */

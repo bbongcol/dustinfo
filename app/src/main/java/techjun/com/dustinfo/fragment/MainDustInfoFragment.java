@@ -18,14 +18,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import techjun.com.dustinfo.R;
-import techjun.com.dustinfo.db.DBHelperDust;
 import techjun.com.dustinfo.model.Dust;
-import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.service.DustDBService;
-import techjun.com.dustinfo.service.DustService;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 /**
@@ -50,8 +46,6 @@ public class MainDustInfoFragment extends Fragment {
 
     private OnFragmentInteractionListener mListener;
     private SwipeRefreshLayout mSwipeRefreshLayout;
-    //private DustService dustService;
-    //private DustSet myDustSet;
 
     DustDBService mDustDBService;
     boolean mBound = false;
@@ -210,7 +204,7 @@ public class MainDustInfoFragment extends Fragment {
 
         @Override
         protected ArrayList<Dust> doInBackground(Void... params) {
-            ArrayList<Dust> curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity());
+            ArrayList<Dust> curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity(), false);
             return curDustArrayList;
         }
 

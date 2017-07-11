@@ -1,21 +1,13 @@
 package techjun.com.dustinfo;
 
 import android.Manifest;
-import android.app.ActivityManager;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -28,7 +20,6 @@ import android.view.MenuItem;
 import techjun.com.dustinfo.fragment.MainDustInfoFragment;
 import techjun.com.dustinfo.fragment.SwipeRefreshListFragmentFragment;
 import techjun.com.dustinfo.service.DustDBService;
-import techjun.com.dustinfo.service.DustService;
 import techjun.com.dustinfo.utils.LocationUtil;
 
 public class MainActivity extends AppCompatActivity
@@ -58,7 +49,6 @@ public class MainActivity extends AppCompatActivity
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
         } else {
             setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
-            DustService.getInstance(this).updateDustInfo();
 
             if (savedInstanceState == null) {
                 updateFragment(FRAGMENT_DUST_INFO_MAIN);
@@ -137,7 +127,6 @@ public class MainActivity extends AppCompatActivity
 
         //권한 유무와 상관없이 업데이트
         setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
-        DustService.getInstance(this).updateDustInfo();
         updateFragment(FRAGMENT_DUST_INFO_MAIN);
         return;
     }

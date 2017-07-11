@@ -16,9 +16,15 @@
 
 package techjun.com.dustinfo.fragment;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -30,8 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import techjun.com.dustinfo.R;
+import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.model.DustSet;
-import techjun.com.dustinfo.service.DustService;
+import techjun.com.dustinfo.service.DustDBService;
+import techjun.com.dustinfo.utils.LocationUtil;
 
 /**
  * A sample which shows how to use {@link android.support.v4.widget.SwipeRefreshLayout} within a
@@ -50,13 +58,12 @@ import techjun.com.dustinfo.service.DustService;
  */
 public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
 
-    private static final String LOG_TAG = SwipeRefreshListFragmentFragment.class.getSimpleName();
+    private static final String TAG = SwipeRefreshListFragmentFragment.class.getSimpleName();
 
     private static final int LIST_ITEM_COUNT = 24;
-    int mPM10[] = new int[24];
-    int mPM25[] = new int[24];
-    String mTime[] = new String[24];
-    DustService dustService;
+    DustDBService mDustDBService;
+    boolean mBound = false;
+    ArrayList<Dust> curDustArrayList = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -95,28 +102,20 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
          * refreshes the content. Call the same method in response to the Refresh action from the
          * action bar.
          */
+
+        doBindService();
+
         setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                dustService.requestPMInfo();
-                //initiateRefresh();
+                //mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity());
+                curDustArrayList = null;
+                initiateRefresh();
             }
         });
 
         setColorScheme(R.color.color_scheme_1_1, R.color.color_scheme_1_2,
                 R.color.color_scheme_1_3, R.color.color_scheme_1_4);
-
-        dustService = DustService.getInstance(getContext());
-        dustService.setOnCurrentDustCB(new DustService.OnCurrentDustCB() {
-            @Override
-            public void OnCurrentDust(DustSet curDustSet) {
-                mPM10 = curDustSet.getmPM10(); mPM25 = curDustSet.getmPM25(); mTime = curDustSet.getmCurDataTime();
-                initiateRefresh();
-            }
-        });
-
-        dustService.requestPMInfo();
-
         // END_INCLUDE (setup_refreshlistener)
     }
     // END_INCLUDE (setup_views)
@@ -190,6 +189,44 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
      * By abstracting the refresh process to a single method, the app allows both the
      * SwipeGestureLayout onRefresh() method and the Refresh action item to refresh the content.
      */
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            DustDBService.LocalBinder binder = (DustDBService.LocalBinder) service;
+            mBound = true;
+            mDustDBService = binder.getService();
+            mDustDBService.registerCallback(new DustDBService.ICurrentDustCallback() {
+                @Override
+                public void OnCurrentDust(ArrayList<Dust> dustArrayList) {
+                    Log.d(TAG,"OnCurrentDust");
+                    curDustArrayList = dustArrayList;
+                    initiateRefresh();
+                }
+            });
+            initiateRefresh();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+    void doBindService() {
+        Log.d(TAG, "doBindService()");
+        getActivity().bindService(new Intent(getActivity(), DustDBService.class), mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    void doUnbindService() {
+        Log.d(TAG, "doUnbindService()");
+        if (mBound) {
+            // Detach our existing connection.
+            getActivity().unbindService(mConnection);
+        }
+    }
+
     private void initiateRefresh() {
 
         /**
@@ -205,7 +242,7 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
      * ListAdapter and turns off the progress bar.
      */
     private void onRefreshComplete(List<String> result) {
-
+        Log.d(TAG, "onRefreshComplete()");
         // Remove all items from the ListAdapter, and then replace them with the new items
         ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
         adapter.clear();
@@ -225,9 +262,14 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
 
         @Override
         protected List<String> doInBackground(Void... params) {
+
             List<String> dustInfoStr = new ArrayList<String>();
-            for(int i=0; i < mPM10.length; i++) {
-                dustInfoStr.add(mTime[i] + "    PM10 : " +mPM10[i] + "    PM2.5 : "+ mPM25[i]);
+            if(curDustArrayList == null) {
+                curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity(), true);
+            } else {
+                for (int i = 0; i < curDustArrayList.size(); i++) {
+                    dustInfoStr.add(curDustArrayList.get(i).getmDateTime() + "    PM10 : " + curDustArrayList.get(i).getmPM10() + "    PM2.5 : " + curDustArrayList.get(i).getmPM25());
+                }
             }
             return dustInfoStr;
         }
@@ -235,7 +277,9 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         @Override
         protected void onPostExecute(List<String> result) {
             super.onPostExecute(result);
-            onRefreshComplete(result);
+            if(result!=null && result.size() == 24) {
+                onRefreshComplete(result);
+            }
         }
     }
 }
