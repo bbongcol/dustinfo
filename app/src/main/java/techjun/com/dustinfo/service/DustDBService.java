@@ -107,6 +107,12 @@ public class DustDBService extends Service {
         if (checkNeedToUpdate(dustArrayList) || forceUpdate) {
             //update 필요
             new DustDBService.JsonLoadingTask().execute(mSidoCity);
+        } else {
+            Log.d(TAG, "Just Notification updated. dustArrayList.size():" + dustArrayList.size());
+            if (dustArrayList.size() == 24) {
+                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
+                notificationUtil.notify(0);
+            }
         }
         //DB의 데이터를 일단 바로 넘긴다
         return dustArrayList;

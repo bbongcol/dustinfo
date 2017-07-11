@@ -265,7 +265,7 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
 
             List<String> dustInfoStr = new ArrayList<String>();
             if(curDustArrayList == null) {
-                curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity(), true);
+                mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity(), true);
             } else {
                 for (int i = 0; i < curDustArrayList.size(); i++) {
                     dustInfoStr.add(curDustArrayList.get(i).getmDateTime() + "    PM10 : " + curDustArrayList.get(i).getmPM10() + "    PM2.5 : " + curDustArrayList.get(i).getmPM25());
