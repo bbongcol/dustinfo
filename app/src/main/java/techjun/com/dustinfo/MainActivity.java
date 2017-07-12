@@ -48,8 +48,7 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "requestPermissions");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
         } else {
-            setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
-
+            setTitle(displayAddress(LocationUtil.getInstance(this).getCurrentSidoCity()));
             if (savedInstanceState == null) {
                 updateFragment(FRAGMENT_DUST_INFO_MAIN);
             }
@@ -126,7 +125,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         //권한 유무와 상관없이 업데이트
-        setTitle(displayAddress(LocationUtil.getInstance(this).getAddressList()));
+        setTitle(displayAddress(LocationUtil.getInstance(this).getCurrentSidoCity()));
         updateFragment(FRAGMENT_DUST_INFO_MAIN);
         return;
     }

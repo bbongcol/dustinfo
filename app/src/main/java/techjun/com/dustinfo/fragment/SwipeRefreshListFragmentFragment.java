@@ -201,8 +201,12 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
                 @Override
                 public void OnCurrentDust(ArrayList<Dust> dustArrayList) {
                     Log.d(TAG,"OnCurrentDust");
-                    curDustArrayList = dustArrayList;
-                    initiateRefresh();
+                    if(dustArrayList != null) {
+                        curDustArrayList = dustArrayList;
+                        initiateRefresh();
+                    } else {
+                        setRefreshing(false);
+                    }
                 }
             });
             initiateRefresh();

@@ -21,13 +21,10 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 
 import techjun.com.dustinfo.db.DBHelperDust;
 import techjun.com.dustinfo.model.Dust;
-import techjun.com.dustinfo.model.DustSet;
-//import techjun.com.dustinfo.utils.LocationUtil;
 import techjun.com.dustinfo.utils.NotificationUtil;
 
 public class DustDBService extends Service {
@@ -37,6 +34,7 @@ public class DustDBService extends Service {
     }
 
     public final int POOLING_FREQUENCY = 1000 * 30;//30sec
+    public final int JSON_RETRY_COUNT = 3;
     public final static int START_POOLING = 1001;
     public final static int STOP_POOLING = 1002;
     public final static int DO_POOLING = 1003;
@@ -75,8 +73,6 @@ public class DustDBService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
-        //mMainHandler.removeMessages(DO_POOLING);
-        //mMainHandler.sendEmptyMessage(START_POOLING);
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -97,21 +93,10 @@ public class DustDBService extends Service {
         mCallback = cb;
     }
 
-    /**
-     * method for clients
-     */
     public void requestDustData(String[] requestSidoCity) {
         Log.d(TAG, "requestDustData requestSidoCity : " + requestSidoCity[1]);
         mSidoCity = requestSidoCity;
         new DustDBService.JsonLoadingTask().execute(requestSidoCity);
-
-        /*
-        ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
-        if (checkNeedToUpdate(dustArrayList) || forceUpdate) {
-            //update 필요
-            new DustDBService.JsonLoadingTask().execute(mSidoCity);
-        }
-        */
     }
 
     boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
@@ -198,13 +183,10 @@ public class DustDBService extends Service {
                 needToUpdate = false;
                 mMainHandler.removeMessages(DO_POOLING);
             }
-
         }
         return needToUpdate;
     }
 
-
-    // Handler 클래스
     class SendMassgeHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
@@ -220,21 +202,12 @@ public class DustDBService extends Service {
                     removeMessages(DO_POOLING);
                     break;
                 case DO_POOLING:
-                    //DB업데이트
                     Log.d(TAG, "handleMessage DO_POOLING");
-                    //sendEmptyMessageDelayed(DO_POOLING, POOLING_FREQUENCY);
-                    ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
-                    if (checkNeedToUpdate(dustArrayList)) {
-                        //update 필요
-                        new DustDBService.JsonLoadingTask().execute(mSidoCity);
-                    }
-                    //new DustDBService.JsonLoadingTask().execute();
+                    new DustDBService.JsonLoadingTask().execute(mSidoCity);
                     break;
             }
         }
     }
-
-    ;
 
     private class JsonLoadingTask extends AsyncTask<String[], Void, String[]> {
         @Override
@@ -248,45 +221,46 @@ public class DustDBService extends Service {
             ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(sidoCity[1]);
             Log.d(TAG, "Before Notification updated and callback dustArrayList.size():" + dustArrayList.size());
             if (dustArrayList.size() == 24) {
-                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
-                notificationUtil.notify(0);
-                Log.d(TAG, "Notification updated");
+                notificationUtil.setContentTitle("미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
+            } else {
+                notificationUtil.setContentTitle("미세먼지: -  초미세먼지: -");
+                dustArrayList = null;
+            }
 
-                //서비스에서 액티비티 함수 호출은..
-                if (mCallback != null) {
-                    Log.d(TAG, "Call OnCurrentDust");
-                    mCallback.OnCurrentDust(dustArrayList);
-                }
+            notificationUtil.notify(0);
+            Log.d(TAG, "Notification updated");
+
+            if (mCallback != null) {
+                Log.d(TAG, "Call OnCurrentDust");
+                mCallback.OnCurrentDust(dustArrayList);
             }
         }
     }
 
-    /**
-     * 원격으로부터 JSON형태의 문서를 받아서
-     * JSON 객체를 생성한 다음에 객체에서 필요한 데이터 추출
-     */
     private String[] getDustInfoJson(String[] sidocity) {
         if (checkNeedToUpdate(mDBHelperDust.getDustList(sidocity[1]))) {
             try {
                 Log.d(TAG, "getDustInfoJson");
+                String jsonPage = null;
+                JSONArray json = null;
+                boolean validJSONArray = false;
 
-                //주어진 URL 문서의 내용을 문자열로 얻는다.
-                String jsonPage = getStringFromUrl(getDustUrl(sidocity));
-
-                //JSON객체를 JSONArray로 변경
-                if (jsonPage != null) {
-                    JSONArray json = new JSONArray(jsonPage);
-
-                    //retry
-                    if (json.getJSONObject(0).has("msg") &&
-                            json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
-                        jsonPage = getStringFromUrl(getDustUrl(sidocity));
+                for(int i= 0; i < JSON_RETRY_COUNT; i++) {
+                    jsonPage = getStringFromUrl(getDustUrl(sidocity));
+                    if (jsonPage != null && jsonPage.length() != 0) {
                         json = new JSONArray(jsonPage);
+                        if (json.length() == 24 || json.length() == 25) {
+                            validJSONArray = true;
+                            break;
+                        }
                     }
+                }
 
+                if (validJSONArray) {
                     ArrayList<Dust> newDustArrayList = new ArrayList<Dust>();
 
                     int jsonlength = json.length();
+
                     if (jsonlength == 25) {
                         jsonlength = jsonlength - 1;
                     }
@@ -320,26 +294,27 @@ public class DustDBService extends Service {
             }
         }
         return sidocity;
-    }//getJsonText()-----------
+    }
 
-    //현재 위치 String을 이용해 https 주소를 생성한다
     private String getDustUrl(String[] sidocity) {
         StringBuffer sb = new StringBuffer();
-        sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
-        sb.append(sidocity[0]);
-        sb.append("/");
-        sb.append(sidocity[1]);
+        if(sidocity[0].equalsIgnoreCase("")) {
+            sb.append("https://lit-inlet-76867.herokuapp.com");
+        } else {
+            sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
+            sb.append(sidocity[0]);
+            sb.append("/");
+            sb.append(sidocity[1]);
+        }
         return String.valueOf(sb);
     }
 
-
-    // getStringFromUrl : 주어진 URL의 문서의 내용을 문자열로 반환
     private String getStringFromUrl(String pUrl) {
         Log.d(TAG, "getStringFromUrl pUrl:" + pUrl);
         BufferedReader bufreader = null;
         HttpURLConnection urlConnection = null;
 
-        StringBuffer page = new StringBuffer(); //읽어온 데이터를 저장할 StringBuffer객체 생성
+        StringBuffer page = new StringBuffer();
 
         try {
             URL url = new URL(pUrl);
@@ -350,19 +325,15 @@ public class DustDBService extends Service {
             bufreader = new BufferedReader(new InputStreamReader(contentStream, "UTF-8"));
             String line = null;
 
-            //버퍼의 웹문서 소스를 줄단위로 읽어(line), Page에 저장함
             while ((line = bufreader.readLine()) != null) {
-                //Log.d("line:",line);
                 page.append(line);
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            //자원해제
             try {
-                bufreader.close();
-                urlConnection.disconnect();
+                if(bufreader!=null) bufreader.close();
+                if(urlConnection!=null) urlConnection.disconnect();
             } catch (IOException e) {
                 e.printStackTrace();
             }

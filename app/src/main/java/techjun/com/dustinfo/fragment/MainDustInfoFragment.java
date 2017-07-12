@@ -129,9 +129,11 @@ public class MainDustInfoFragment extends Fragment {
                 @Override
                 public void OnCurrentDust(ArrayList<Dust> curDustArrayList) {
                     Log.d(TAG,"OnCurrentDust");
-                    textPM10Data.setText(""+ curDustArrayList.get(0).getmPM10());
-                    textPM25Data.setText(""+ curDustArrayList.get(0).getmPM25());
-                    textLastTime.setText(""+ curDustArrayList.get(0).getmDateTime());
+                    if(curDustArrayList !=null) {
+                        textPM10Data.setText("" + curDustArrayList.get(0).getmPM10());
+                        textPM25Data.setText("" + curDustArrayList.get(0).getmPM25());
+                        textLastTime.setText("" + curDustArrayList.get(0).getmDateTime());
+                    }
                     mSwipeRefreshLayout.setRefreshing(false);
                 }
             });
