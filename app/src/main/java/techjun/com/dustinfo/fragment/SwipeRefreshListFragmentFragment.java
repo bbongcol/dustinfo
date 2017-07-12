@@ -37,7 +37,6 @@ import java.util.List;
 
 import techjun.com.dustinfo.R;
 import techjun.com.dustinfo.model.Dust;
-import techjun.com.dustinfo.model.DustSet;
 import techjun.com.dustinfo.service.DustDBService;
 import techjun.com.dustinfo.utils.LocationUtil;
 
