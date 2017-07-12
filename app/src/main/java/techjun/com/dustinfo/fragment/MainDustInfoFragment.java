@@ -200,24 +200,12 @@ public class MainDustInfoFragment extends Fragment {
         return displayAddress;
     }
     
-    private class UpdateDustInfoBGTask extends AsyncTask<Void, Void, ArrayList<Dust>> {
+    private class UpdateDustInfoBGTask extends AsyncTask<Void, Void, Void> {
 
         @Override
-        protected ArrayList<Dust> doInBackground(Void... params) {
-            ArrayList<Dust> curDustArrayList = mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity(), false);
-            return curDustArrayList;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Dust> curDustArrayList) {
-            super.onPostExecute(curDustArrayList);
-            Log.d(TAG, "onPostExecute() curDustArrayList.size():" + curDustArrayList.size());
-            if(curDustArrayList.size() == 24) {
-                textPM10Data.setText("" + curDustArrayList.get(0).getmPM10());
-                textPM25Data.setText("" + curDustArrayList.get(0).getmPM25());
-                textLastTime.setText("" + curDustArrayList.get(0).getmDateTime());
-                mSwipeRefreshLayout.setRefreshing(false);
-            }
+        protected Void doInBackground(Void... params) {
+            mDustDBService.requestDustData(LocationUtil.getInstance(getContext()).getCurrentSidoCity());
+            return null;
         }
     }
 }

@@ -100,22 +100,18 @@ public class DustDBService extends Service {
     /**
      * method for clients
      */
-    public ArrayList<Dust> requestDustData(String[] requestSidoCity, boolean forceUpdate) {
+    public void requestDustData(String[] requestSidoCity) {
         Log.d(TAG, "requestDustData requestSidoCity : " + requestSidoCity[1]);
         mSidoCity = requestSidoCity;
+        new DustDBService.JsonLoadingTask().execute(requestSidoCity);
+
+        /*
         ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
         if (checkNeedToUpdate(dustArrayList) || forceUpdate) {
             //update 필요
             new DustDBService.JsonLoadingTask().execute(mSidoCity);
-        } else {
-            Log.d(TAG, "Just Notification updated. dustArrayList.size():" + dustArrayList.size());
-            if (dustArrayList.size() == 24) {
-                notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
-                notificationUtil.notify(0);
-            }
         }
-        //DB의 데이터를 일단 바로 넘긴다
-        return dustArrayList;
+        */
     }
 
     boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
@@ -240,41 +236,27 @@ public class DustDBService extends Service {
 
     ;
 
-    private class JsonLoadingTask extends AsyncTask<String[], Void, Integer> {
+    private class JsonLoadingTask extends AsyncTask<String[], Void, String[]> {
         @Override
-        protected Integer doInBackground(String[]... strs) {
+        protected String[] doInBackground(String[]... strs) {
             //TODO 위치가 추가되면 여기서 for 문으로 추가하기
-            getDustInfoJson(strs[0]);
-            return 0;
+            return getDustInfoJson(strs[0]);
         }
 
         @Override
-        protected void onPostExecute(Integer result) {
-            //Log.d("onPostExecute", myDustSet +" " + myDustSet.getmPM10()[0]);
-            //if (myCallback != null) {
-            //    myCallback.OnCurrentDust(myDustSet);
-            //}
-
-            long now = System.currentTimeMillis();
-            // 현재시간을 date 변수에 저장한다.
-            Date date = new Date(now);
-            // 시간을 나타냇 포맷을 정한다 ( yyyy/MM/dd 같은 형태로 변형 가능 )
-            SimpleDateFormat sdfNow = new SimpleDateFormat("HH:mm");
-            // nowDate 변수에 값을 저장한다.
-            String formatDate = sdfNow.format(date);
-
-            ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(mSidoCity[1]);
-
-            Log.d(TAG, "Before Notification updated dustArrayList.size():" + dustArrayList.size());
+        protected void onPostExecute(String[] sidoCity) {
+            ArrayList<Dust> dustArrayList = mDBHelperDust.getDustList(sidoCity[1]);
+            Log.d(TAG, "Before Notification updated and callback dustArrayList.size():" + dustArrayList.size());
             if (dustArrayList.size() == 24) {
                 notificationUtil.setContentTitle(/*"업데이트: "+formatDate+*/"미세먼지: " + dustArrayList.get(0).getmPM10() + "  초미세먼지: " + dustArrayList.get(0).getmPM25());
                 notificationUtil.notify(0);
+                Log.d(TAG, "Notification updated");
 
                 //서비스에서 액티비티 함수 호출은..
                 if (mCallback != null) {
+                    Log.d(TAG, "Call OnCurrentDust");
                     mCallback.OnCurrentDust(dustArrayList);
                 }
-                Log.d(TAG, "Notification updated");
             }
         }
     }
@@ -283,60 +265,61 @@ public class DustDBService extends Service {
      * 원격으로부터 JSON형태의 문서를 받아서
      * JSON 객체를 생성한 다음에 객체에서 필요한 데이터 추출
      */
-    private int getDustInfoJson(String[] sidocity) {
-        try {
-            Log.d(TAG, "getDustInfoJson");
-            //서버 통신 확인
-            //String jsonTmp = getStringFromUrl("https://lit-inlet-76867.herokuapp.com");
+    private String[] getDustInfoJson(String[] sidocity) {
+        if (checkNeedToUpdate(mDBHelperDust.getDustList(sidocity[1]))) {
+            try {
+                Log.d(TAG, "getDustInfoJson");
 
-            //주어진 URL 문서의 내용을 문자열로 얻는다.
-            String jsonPage = getStringFromUrl(getDustUrl(sidocity));
+                //주어진 URL 문서의 내용을 문자열로 얻는다.
+                String jsonPage = getStringFromUrl(getDustUrl(sidocity));
 
-            //JSON객체를 JSONArray로 변경
-            if (jsonPage != null) {
-                JSONArray json = new JSONArray(jsonPage);
+                //JSON객체를 JSONArray로 변경
+                if (jsonPage != null) {
+                    JSONArray json = new JSONArray(jsonPage);
 
-                if (json.getJSONObject(0).has("msg") &&
-                        json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
-                    jsonPage = getStringFromUrl(getDustUrl(sidocity));
-                    json = new JSONArray(jsonPage);
+                    //retry
+                    if (json.getJSONObject(0).has("msg") &&
+                            json.getJSONObject(0).getString("msg").equalsIgnoreCase("RETRY REQUEST")) {
+                        jsonPage = getStringFromUrl(getDustUrl(sidocity));
+                        json = new JSONArray(jsonPage);
+                    }
+
+                    ArrayList<Dust> newDustArrayList = new ArrayList<Dust>();
+
+                    int jsonlength = json.length();
+                    if (jsonlength == 25) {
+                        jsonlength = jsonlength - 1;
+                    }
+
+                    for (int i = 0; i < jsonlength; i++) {
+                        Dust dust = new Dust(
+                                json.getJSONObject(i).getString("sidoName"),
+                                json.getJSONObject(i).getString("cityName"),
+                                json.getJSONObject(i).getString("dataTime"),
+                                (float) json.getJSONObject(i).getDouble("coValue"),
+                                (float) json.getJSONObject(i).getDouble("no2Value"),
+                                (float) json.getJSONObject(i).getDouble("o3Value"),
+                                json.getJSONObject(i).getInt("pm10Value"),
+                                json.getJSONObject(i).getInt("pm25Value"),
+                                (float) json.getJSONObject(i).getDouble("so2Value")
+                        );
+                        newDustArrayList.add(dust);
+                    }
+
+                    Log.d(TAG, "Get dustArrayList OK!. Try update db : " + newDustArrayList.get(0).getmDateTime() + " newDustArrayList.size() : " + newDustArrayList.size());
+                    //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
+                    if (checkNeedToUpdateDB(mDBHelperDust.getDustList(sidocity[1]), newDustArrayList)) {
+                        Log.d(TAG, "DB updated");
+                        mDBHelperDust.delete(sidocity[1]);
+                        mDBHelperDust.insertDustList(newDustArrayList);
+                    }
                 }
-
-                ArrayList<Dust> dustArrayList = new ArrayList<Dust>();
-
-                int jsonlength = json.length();
-                if(jsonlength == 25 ) {
-                    jsonlength = jsonlength - 1;
-                }
-
-                for (int i = 0; i < jsonlength; i++) {
-                    Dust dust = new Dust(
-                            json.getJSONObject(i).getString("sidoName"),
-                            json.getJSONObject(i).getString("cityName"),
-                            json.getJSONObject(i).getString("dataTime"),
-                            (float) json.getJSONObject(i).getDouble("coValue"),
-                            (float) json.getJSONObject(i).getDouble("no2Value"),
-                            (float) json.getJSONObject(i).getDouble("o3Value"),
-                            json.getJSONObject(i).getInt("pm10Value"),
-                            json.getJSONObject(i).getInt("pm25Value"),
-                            (float) json.getJSONObject(i).getDouble("so2Value")
-                    );
-                    dustArrayList.add(dust);
-                }
-
-                Log.d(TAG, "Get dustArrayList OK!. Try update db : " + dustArrayList.get(0).getmDateTime() + " dustArrayList.size() : "+dustArrayList.size());
-                //TODO db 전체가 아니라 일부만 업데이트 되도록 수정 필요. 일단은 앞에꺼를 지우고 다시 넣는 방식으로 적용
-                if (checkNeedToUpdateDB(mDBHelperDust.getDustList(mSidoCity[1]), dustArrayList)) {
-                    Log.d(TAG, "DB updated");
-                    mDBHelperDust.delete(mSidoCity[1]);
-                    mDBHelperDust.insertDustList(dustArrayList);
-                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                // TODO: handle exception
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            // TODO: handle exception
         }
-        return 0;
+        return sidocity;
     }//getJsonText()-----------
 
     //현재 위치 String을 이용해 https 주소를 생성한다
