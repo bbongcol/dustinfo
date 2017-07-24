@@ -27,6 +27,8 @@ import techjun.com.dustinfo.db.DBHelperDust;
 import techjun.com.dustinfo.model.Dust;
 import techjun.com.dustinfo.utils.NotificationUtil;
 
+import static java.lang.Thread.sleep;
+
 public class DustDBService extends Service {
 
     public interface ICurrentDustCallback {
@@ -39,6 +41,10 @@ public class DustDBService extends Service {
     public final static int STOP_POOLING = 1002;
     public final static int DO_POOLING = 1003;
     public final String TAG = "DustDBService";
+
+    //public final String SERVER_ADDRESS = "https://lit-inlet-76867.herokuapp.com";
+    //public final String SERVER_ADDRESS = "http://techjunsoft.hopto.org:5000";
+    public final String SERVER_ADDRESS = "http://192.168.219.108:5000";
 
     private IBinder mBinder = new LocalBinder();
     private SendMassgeHandler mMainHandler;
@@ -254,6 +260,7 @@ public class DustDBService extends Service {
                             break;
                         }
                     }
+                    Thread.sleep(500);
                 }
 
                 if (validJSONArray) {
@@ -298,10 +305,10 @@ public class DustDBService extends Service {
 
     private String getDustUrl(String[] sidocity) {
         StringBuffer sb = new StringBuffer();
-        if(sidocity[0].equalsIgnoreCase("")) {
-            sb.append("https://lit-inlet-76867.herokuapp.com");
-        } else {
-            sb.append("https://lit-inlet-76867.herokuapp.com/getDust/sido/");
+        sb.append(SERVER_ADDRESS);
+
+        if(!sidocity[0].equalsIgnoreCase("")) {
+            sb.append("/getDust/sido/");
             sb.append(sidocity[0]);
             sb.append("/");
             sb.append(sidocity[1]);
