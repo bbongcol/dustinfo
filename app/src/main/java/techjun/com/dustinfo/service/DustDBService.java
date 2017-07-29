@@ -102,7 +102,7 @@ public class DustDBService extends Service {
     public void requestDustData(String[] requestSidoCity) {
         Log.d(TAG, "requestDustData requestSidoCity : " + requestSidoCity[1]);
         mSidoCity = requestSidoCity;
-        new DustDBService.JsonLoadingTask().execute(requestSidoCity);
+        new JsonLoadingTask().execute(requestSidoCity);
     }
 
     boolean checkNeedToUpdate(ArrayList<Dust> dustArrayList) {
@@ -209,7 +209,11 @@ public class DustDBService extends Service {
                     break;
                 case DO_POOLING:
                     Log.d(TAG, "handleMessage DO_POOLING");
-                    new DustDBService.JsonLoadingTask().execute(mSidoCity);
+                    if(mSidoCity != null) {
+                        new JsonLoadingTask().execute(mSidoCity);
+                    } else {
+                        Log.e(TAG, "mSidoCity is null...");
+                    }
                     break;
             }
         }
