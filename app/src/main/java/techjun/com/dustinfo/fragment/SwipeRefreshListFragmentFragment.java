@@ -124,6 +124,12 @@ public class SwipeRefreshListFragmentFragment extends SwipeRefreshListFragment {
         //inflater.inflate(R.menu.main_menu, menu);
     }
 
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        doUnbindService();
+    }
+
     // BEGIN_INCLUDE (setup_refresh_menu_listener)
     /**
      * Respond to the user's selection of the Refresh action item. Start the SwipeRefreshLayout
