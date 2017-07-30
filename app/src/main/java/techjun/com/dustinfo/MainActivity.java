@@ -17,6 +17,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import techjun.com.dustinfo.fragment.MainDustInfoFragment;
 import techjun.com.dustinfo.fragment.SwipeRefreshListFragmentFragment;
@@ -125,7 +126,8 @@ public class MainActivity extends AppCompatActivity
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
         } else {
-
+            Toast toast = Toast.makeText(this, "기본 위치로 설정 되었습니다", Toast.LENGTH_SHORT);
+            toast.show();
         }
 
         //권한 유무와 상관없이 업데이트

@@ -127,9 +127,8 @@ public class LocationUtil {
                     }
                 }
             } else {
-                bf.add("");
-                bf.add("");
-                bf.add("");
+                bf.add("서울");
+                bf.add("서초구");
             }
         } catch (IOException e) {
             //Toast.makeText(mContext, "주소취득 실패", Toast.LENGTH_LONG).show();
