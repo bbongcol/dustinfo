@@ -102,11 +102,7 @@ public class MainActivity extends AppCompatActivity
 
     public String displayAddress (String[] address) {
         String displayAddress = null;
-        if(address[2] != null) {
-            displayAddress = address[1] + " " + address[2];
-        } else {
-            displayAddress = address[0] + " " + address[1];
-        }
+        displayAddress = address[0] + " " + address[1];
         return displayAddress;
     }
 

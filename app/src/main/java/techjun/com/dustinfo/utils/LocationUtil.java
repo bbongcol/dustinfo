@@ -107,19 +107,24 @@ public class LocationUtil {
             if (geocoder != null && userLocation != null) {
                 address = geocoder.getFromLocation(lat, lng, 1);
                 if (address != null && address.size() > 0) {
-                    switch(address.get(0).getAdminArea()) {
-                        case "충청북도": bf.add("충북"); break;
-                        case "충청남도": bf.add("충남"); break;
-                        case "전라북도": bf.add("전북"); break;
-                        case "전라남도": bf.add("전남"); break;
-                        case "경상북도": bf.add("경북"); break;
-                        case "경상남도": bf.add("경남"); break;
-                        default:
-                            bf.add(address.get(0).getAdminArea().substring(0,2));
-                            break;
+                    if(address.get(0).getAdminArea() != null) {
+                        switch (address.get(0).getAdminArea()) {
+                            case "충청북도": bf.add("충북"); break;
+                            case "충청남도": bf.add("충남"); break;
+                            case "전라북도": bf.add("전북"); break;
+                            case "전라남도": bf.add("전남"); break;
+                            case "경상북도": bf.add("경북"); break;
+                            case "경상남도": bf.add("경남"); break;
+                            default:
+                                bf.add(address.get(0).getAdminArea().substring(0, 2));
+                                break;
+                        }
+                        bf.add(address.get(0).getLocality());
+                        //bf.add(address.get(0).getSubLocality());
+                    } else {
+                        bf.add(address.get(0).getLocality().substring(0, 2));
+                        bf.add(address.get(0).getSubLocality());
                     }
-                    bf.add(address.get(0).getLocality());
-                    bf.add(address.get(0).getSubLocality());
                 }
             } else {
                 bf.add("");

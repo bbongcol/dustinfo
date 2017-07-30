@@ -277,16 +277,17 @@ public class DustDBService extends Service {
                     }
 
                     for (int i = 0; i < jsonlength; i++) {
+                        //Log.d(TAG, "new Dust : " + i);
                         Dust dust = new Dust(
                                 json.getJSONObject(i).getString("sidoName"),
                                 json.getJSONObject(i).getString("cityName"),
                                 json.getJSONObject(i).getString("dataTime"),
-                                (float) json.getJSONObject(i).getDouble("coValue"),
-                                (float) json.getJSONObject(i).getDouble("no2Value"),
-                                (float) json.getJSONObject(i).getDouble("o3Value"),
-                                json.getJSONObject(i).getInt("pm10Value"),
-                                json.getJSONObject(i).getInt("pm25Value"),
-                                (float) json.getJSONObject(i).getDouble("so2Value")
+                                (float) json.getJSONObject(i).optDouble("coValue", 0),
+                                (float) json.getJSONObject(i).optDouble("no2Value", 0),
+                                (float) json.getJSONObject(i).optDouble("o3Value", 0),
+                                json.getJSONObject(i).optInt("pm10Value",0),
+                                json.getJSONObject(i).optInt("pm25Value",0),
+                                (float) json.getJSONObject(i).optDouble("so2Value", 0)
                         );
                         newDustArrayList.add(dust);
                     }
