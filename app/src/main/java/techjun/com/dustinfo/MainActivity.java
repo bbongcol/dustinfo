@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentTransaction;
@@ -43,10 +44,17 @@ public class MainActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
 
         //권한 요청
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // 사용자 권한 요청
-            Log.d(TAG, "requestPermissions");
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // 사용자 권한 요청
+                Log.d(TAG, "requestPermissions");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION);
+            } else {
+                setTitle(displayAddress(LocationUtil.getInstance(this).getCurrentSidoCity()));
+                if (savedInstanceState == null) {
+                    updateFragment(FRAGMENT_DUST_INFO_MAIN);
+                }
+            }
         } else {
             setTitle(displayAddress(LocationUtil.getInstance(this).getCurrentSidoCity()));
             if (savedInstanceState == null) {
